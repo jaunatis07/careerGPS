@@ -88,45 +88,43 @@
 
 ## 阶段六：上线部署与全网 Release (Deployment)
 
-- [ ] **6.1 代码 GitHub 托管**  
+- [x] **6.1 代码 GitHub 托管**  
   * 任务：创建 GitHub Remote 仓库，将本地代码 `git push` 上传。  
-  * **步骤 A · 在 GitHub 网页创建空仓库**  
-    1. 打开 [github.com/new](https://github.com/new)  
-    2. Repository name 填 `careerGPS`（或你喜欢的名字）  
-    3. 选 **Private** 或 Public，**不要**勾选 "Add a README"（本地已有代码）  
-    4. 点击 Create repository，复制页面上的 HTTPS 地址，如 `https://github.com/你的用户名/careerGPS.git`  
-  * **步骤 B · 在本地终端推送**（将 `YOUR_REPO_URL` 换成上一步地址）  
-    ```bash
-    cd ~/Desktop/careerGPS
-    git remote add origin YOUR_REPO_URL
-    git branch -M main
-    git push -u origin main
-    ```  
-  * 验证：GitHub 仓库页面能看到全部源码，`main` 分支最新 commit 为 `feat: 完成阶段五 5.2 响应式适配`。
+  * 仓库地址：[github.com/jaunatis07/careerGPS](https://github.com/jaunatis07/careerGPS)  
+  * 验证：GitHub 仓库页面能看到全部源码，`main` 分支已同步本地最新 commit。
 
 - [ ] **6.2 Vercel 一键部署上线**  
-  * 任务：在 Vercel 导入 GitHub 仓库，配置环境变量，完成 Deploy。  
+  * 任务：在 Vercel 导入 GitHub 仓库，配置环境变量，完成 Deploy，并更新 Supabase 生产 Auth。  
   * **步骤 A · 导入项目**  
-    1. 打开 [vercel.com/new](https://vercel.com/new)，用 GitHub 账号登录并授权  
-    2. Import Git Repository → 选择 `careerGPS`  
-    3. Framework Preset 应自动识别为 **Next.js**，直接 Next  
-  * **步骤 B · 配置环境变量**（参考 `.env.local.example`，从本地 `.env.local` 复制真实值）  
-    | 变量名 | 说明 |
-    |--------|------|
-    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL |
-    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
-    | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key（仅服务端） |
-    | `DEEPSEEK_API_KEY` | DeepSeek API Key |
+    1. 打开 [vercel.com/new](https://vercel.com/new)，用 **GitHub** 登录（与推送代码同一账号 `jaunatis07`）  
+    2. 若首次使用，点击 **Install** 授权 Vercel 访问 GitHub  
+    3. Import Git Repository → 搜索并选择 **`jaunatis07/careerGPS`**  
+    4. Configure Project：Framework Preset 应为 **Next.js**，Root Directory 留空，Build Command / Output 保持默认  
+    5. **先不要点 Deploy**，继续步骤 B 添加环境变量  
+  * **步骤 B · 配置环境变量**（在 Vercel 项目页 Environment Variables，从本地 `.env.local` 复制真实值）  
+    | 变量名 | 说明 | 环境勾选 |
+    |--------|------|----------|
+    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | Production + Preview + Development |
+    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | 同上 |
+    | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key | 同上 |
+    | `DEEPSEEK_API_KEY` | DeepSeek API Key | 同上 |
+    > ⚠️ 切勿在 Vercel 或 GitHub 中上传 `.env.local` 文件本身。  
   * **步骤 C · 首次 Deploy**  
-    点击 Deploy，等待约 2–3 分钟，获得公网域名如 `https://careergps-xxx.vercel.app`  
-  * **步骤 D · 更新 Supabase Auth（必做，否则登录失败）**  
-    1. Supabase Dashboard → **Authentication → URL Configuration**  
-    2. **Site URL** 改为：`https://你的vercel域名.vercel.app`  
-    3. **Redirect URLs** 追加：`https://你的vercel域名.vercel.app/auth/callback`  
-    4. Save  
-  * **步骤 E · 线上验收**  
-    - [ ] 打开 Vercel 域名，访问 `/login` 能收到邮箱验证码  
-    - [ ] 登录后进入 `/mindmap`，各模块 Tab 可切换  
-    - [ ] `/planner` 或 `/resume-agent` 能流式返回 AI 回复  
-    - [ ] 手机浏览器打开，布局正常（阶段 5.2 响应式）  
+    1. 点击 **Deploy**，等待约 2–3 分钟  
+    2. 部署成功后复制 **Domains** 中的地址，例如 `https://careergps.vercel.app` 或 `https://careergps-xxx.vercel.app`  
+    3. 记下该域名，用于步骤 D（将下文 `YOUR_VERCEL_DOMAIN` 替换为实际域名）  
+  * **步骤 D · 更新 Supabase 生产 Auth（必做，否则线上登录失败）**  
+    1. 打开 [Supabase Dashboard](https://supabase.com/dashboard) → 你的 CareerGPS 项目  
+    2. **Authentication → URL Configuration**  
+    3. **Site URL** 改为：`https://YOUR_VERCEL_DOMAIN`（不要末尾斜杠）  
+    4. **Redirect URLs** 在原有 localhost 基础上**追加**一行：  
+       `https://YOUR_VERCEL_DOMAIN/auth/callback`  
+    5. 点击 **Save**  
+    > 本地开发仍可用 `http://localhost:3000`，两条 Redirect URL 可同时保留。  
+  * **步骤 E · 线上验收**（部署完成后逐项打钩）  
+    - [ ] 打开 `https://YOUR_VERCEL_DOMAIN/login`，邮箱验证码能收到  
+    - [ ] 登录后进入 `/mindmap`，Navbar 各模块 Tab 可切换  
+    - [ ] `/planner` 发送消息，AI 流式回复正常  
+    - [ ] `/resume-agent` 粘贴 JD+简历，分析报告流式输出  
+    - [ ] 手机浏览器打开，布局正常  
   * 验证：获得公网独立域名，全网可流畅访问并成功注册使用！
