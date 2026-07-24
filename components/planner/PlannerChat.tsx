@@ -5,8 +5,10 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { createPlannerSession } from "@/app/(dashboard)/planner/actions";
+import { useQuota } from "@/components/providers/QuotaProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +28,7 @@ export function PlannerChat({
   initialMessages = [],
 }: PlannerChatProps) {
   const router = useRouter();
+  const { assertQuotaAvailable, refreshQuota, quotaAwareFetch } = useQuota();
   const [input, setInput] = useState("");
   const sessionIdRef = useRef<string | null>(initialSessionId);
   const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
@@ -44,7 +47,7 @@ export function PlannerChat({
           },
         }),
         fetch: async (input, init) => {
-          const response = await fetch(input, init);
+          const response = await quotaAwareFetch(input, init);
           const nextSessionId = response.headers.get("X-Chat-Session-Id");
 
           if (nextSessionId && nextSessionId !== sessionIdRef.current) {
@@ -55,13 +58,19 @@ export function PlannerChat({
           return response;
         },
       }),
-    [],
+    [quotaAwareFetch],
   );
 
   const { messages, sendMessage, status, error, stop, setMessages } = useChat({
     id: `planner-${initialSessionId ?? "new"}`,
     messages: initialMessages,
     transport,
+    onFinish: () => {
+      void refreshQuota();
+    },
+    onError: (chatError) => {
+      toast.error(chatError.message);
+    },
   });
 
   useEffect(() => {
@@ -79,7 +88,7 @@ export function PlannerChat({
   async function submitText(text: string) {
     const trimmed = text.trim();
 
-    if (!trimmed || isGenerating) {
+    if (!trimmed || isGenerating || !assertQuotaAvailable()) {
       return;
     }
 

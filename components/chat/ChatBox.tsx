@@ -3,7 +3,9 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
+import { useQuota } from "@/components/providers/QuotaProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,6 +29,7 @@ export function ChatBox({
   className,
 }: ChatBoxProps) {
   const [input, setInput] = useState("");
+  const { assertQuotaAvailable, refreshQuota, quotaAwareFetch } = useQuota();
   const sessionIdRef = useRef<string | null>(initialSessionId);
   const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
 
@@ -43,7 +46,7 @@ export function ChatBox({
           },
         }),
         fetch: async (input, init) => {
-          const response = await fetch(input, init);
+          const response = await quotaAwareFetch(input, init);
           const nextSessionId = response.headers.get("X-Chat-Session-Id");
 
           if (nextSessionId && nextSessionId !== sessionIdRef.current) {
@@ -54,13 +57,19 @@ export function ChatBox({
           return response;
         },
       }),
-    [agentType],
+    [agentType, quotaAwareFetch],
   );
 
   const { messages, sendMessage, status, error, stop } = useChat({
     id: `${agentType}-${initialSessionId ?? "new"}`,
     messages: initialMessages,
     transport,
+    onFinish: () => {
+      void refreshQuota();
+    },
+    onError: (chatError) => {
+      toast.error(chatError.message);
+    },
   });
 
   useEffect(() => {
@@ -75,7 +84,7 @@ export function ChatBox({
 
     const text = input.trim();
 
-    if (!text || isGenerating) {
+    if (!text || isGenerating || !assertQuotaAvailable()) {
       return;
     }
 

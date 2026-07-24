@@ -2,10 +2,13 @@
 
 import { useCompletion } from "@ai-sdk/react";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import { useQuota } from "@/components/providers/QuotaProvider";
 import { ResumeAnalysisPanel } from "@/components/resume-agent/ResumeAnalysisPanel";
 import { ResumeInputPanel } from "@/components/resume-agent/ResumeInputPanel";
 import type { CompanyRiskReport } from "@/lib/ai/prompts/resume-system-prompt";
+import { fetchJsonWithToast } from "@/lib/client/quota-fetch";
 import {
   extractCompanyName,
   shouldRunCompanyCheck,
@@ -21,6 +24,7 @@ export function ResumeAgentExperience() {
   const [companyRisk, setCompanyRisk] = useState<CompanyRiskReport | null>(
     null,
   );
+  const { assertQuotaAvailable, refreshQuota, quotaAwareFetch } = useQuota();
 
   const mode = useMemo(
     () => detectAnalysisMode(jdText, resumeText),
@@ -30,6 +34,13 @@ export function ResumeAgentExperience() {
   const { completion, complete, isLoading, error, stop, setCompletion } =
     useCompletion({
       api: "/api/resume-agent",
+      fetch: quotaAwareFetch,
+      onFinish: () => {
+        void refreshQuota();
+      },
+      onError: (completionError) => {
+        toast.error(completionError.message);
+      },
     });
 
   useEffect(() => {
@@ -42,13 +53,15 @@ export function ResumeAgentExperience() {
 
     let cancelled = false;
 
-    void fetch("/api/company-check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ companyName }),
-    })
-      .then((response) => response.json())
-      .then((data: { report?: CompanyRiskReport | null }) => {
+    void fetchJsonWithToast<{ report?: CompanyRiskReport | null }>(
+      "/api/company-check",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyName }),
+      },
+    )
+      .then((data) => {
         if (!cancelled) {
           setCompanyRisk(data.report ?? null);
         }
@@ -65,7 +78,7 @@ export function ResumeAgentExperience() {
   }, [jdText]);
 
   async function handleAnalyze() {
-    if (!mode || isLoading) {
+    if (!mode || isLoading || !assertQuotaAvailable()) {
       return;
     }
 

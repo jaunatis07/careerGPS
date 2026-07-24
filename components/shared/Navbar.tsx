@@ -152,7 +152,9 @@ export function Navbar({ email, quota }: NavbarProps) {
               </SheetHeader>
               <div className="mt-4 px-4">
                 <p className="mb-4 text-sm text-muted-foreground">
-                  今日剩余 {quota.remaining}/{quota.limit} 次
+                  {quota.remaining <= 0
+                    ? "今日额度已用尽"
+                    : `今日剩余 ${quota.remaining}/${quota.limit} 次`}
                 </p>
                 <nav className="flex flex-col gap-1">
                   {NAV_ITEMS.map((item) => {

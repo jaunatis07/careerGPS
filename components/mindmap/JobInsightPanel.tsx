@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -52,7 +53,7 @@ export function JobInsightPanel({
           { signal: controller.signal },
         );
 
-        const data = await response.json();
+        const data = (await response.json()) as JobInsight & { error?: string };
 
         if (!response.ok) {
           throw new Error(data.error ?? "获取岗位透视失败");
@@ -65,6 +66,11 @@ export function JobInsightPanel({
         }
 
         setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "网络开小差了，请重试",
+        );
+        toast.error(
           fetchError instanceof Error
             ? fetchError.message
             : "网络开小差了，请重试",

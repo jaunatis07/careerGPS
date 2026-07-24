@@ -9,14 +9,17 @@ interface QuotaBadgeProps {
  * 展示用户当日剩余 AI Agent 免费调用额度。
  */
 export function QuotaBadge({ quota }: QuotaBadgeProps) {
-  const isLow = quota.remaining <= 2;
+  const isExhausted = quota.remaining <= 0;
+  const isLow = !isExhausted && quota.remaining <= 2;
 
   return (
     <Badge
-      variant={isLow ? "destructive" : "secondary"}
+      variant={isExhausted ? "destructive" : isLow ? "destructive" : "secondary"}
       className="hidden whitespace-nowrap sm:inline-flex"
     >
-      今日剩余 {quota.remaining}/{quota.limit} 次
+      {isExhausted
+        ? "今日额度已用尽"
+        : `今日剩余 ${quota.remaining}/${quota.limit} 次`}
     </Badge>
   );
 }
