@@ -89,17 +89,19 @@ export function JobInsightPanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[min(85vh,720px)] rounded-t-2xl sm:mx-auto sm:max-w-3xl"
+        className="flex h-[min(92dvh,720px)] flex-col rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:mx-auto sm:max-w-3xl"
         showCloseButton
       >
-        <SheetHeader className="border-b pb-4">
-          <SheetTitle>{jobTitle ?? "岗位透视"}</SheetTitle>
-          <SheetDescription>
+        <SheetHeader className="shrink-0 border-b pb-4">
+          <SheetTitle className="pr-8 text-base sm:text-lg">
+            {jobTitle ?? "岗位透视"}
+          </SheetTitle>
+          <SheetDescription className="text-xs sm:text-sm">
             AI 实时生成的岗位基本信息（薪资、技能、内卷烈度与发展路径）
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(min(85vh,720px)-88px)] px-4 pb-6">
+        <ScrollArea className="min-h-0 flex-1 px-4 pb-6">
           {isLoading ? <JobInsightSkeleton /> : null}
 
           {!isLoading && error ? (

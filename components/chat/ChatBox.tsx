@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AgentType } from "@/lib/ai/system-prompts";
+import { CHAT_FORM_CLASS, CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
 
 interface ChatBoxProps {
@@ -95,7 +96,8 @@ export function ChatBox({
   return (
     <div
       className={cn(
-        "flex h-[min(70vh,640px)] flex-col overflow-hidden rounded-xl border bg-card",
+        "flex flex-col overflow-hidden rounded-xl border bg-card",
+        CHAT_PANEL_HEIGHT_CLASS,
         className,
       )}
     >
@@ -125,7 +127,7 @@ export function ChatBox({
             <div
               key={message.id}
               className={cn(
-                "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed",
+                "max-w-[95%] rounded-lg px-3 py-2 text-sm leading-relaxed sm:max-w-[85%]",
                 message.role === "user"
                   ? "ml-auto bg-primary text-primary-foreground"
                   : "bg-muted",
@@ -145,17 +147,19 @@ export function ChatBox({
         </div>
       </ScrollArea>
 
-      <form
-        className="flex items-center gap-2 border-t p-4"
-        onSubmit={handleSubmit}
-      >
+      <form className={CHAT_FORM_CLASS} onSubmit={handleSubmit}>
         <Input
           value={input}
           placeholder="输入你的问题..."
           disabled={isGenerating}
+          className="min-h-10 flex-1"
           onChange={(event) => setInput(event.target.value)}
         />
-        <Button type="submit" disabled={isGenerating || !input.trim()}>
+        <Button
+          type="submit"
+          className="w-full shrink-0 sm:w-auto"
+          disabled={isGenerating || !input.trim()}
+        >
           发送
         </Button>
       </form>

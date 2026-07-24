@@ -15,11 +15,16 @@ export function QuotaBadge({ quota }: QuotaBadgeProps) {
   return (
     <Badge
       variant={isExhausted ? "destructive" : isLow ? "destructive" : "secondary"}
-      className="hidden whitespace-nowrap sm:inline-flex"
+      className="whitespace-nowrap text-[10px] sm:text-xs"
     >
-      {isExhausted
-        ? "今日额度已用尽"
-        : `今日剩余 ${quota.remaining}/${quota.limit} 次`}
+      <span className="sm:hidden">
+        {isExhausted ? "额度用尽" : `${quota.remaining}/${quota.limit}`}
+      </span>
+      <span className="hidden sm:inline">
+        {isExhausted
+          ? "今日额度已用尽"
+          : `今日剩余 ${quota.remaining}/${quota.limit} 次`}
+      </span>
     </Badge>
   );
 }

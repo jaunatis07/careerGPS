@@ -41,7 +41,7 @@ export function ResumeAnalysisPanel({
   const hasOutput = Boolean(completion) || isLoading;
 
   return (
-    <section className="flex min-h-[420px] flex-col overflow-hidden rounded-xl border bg-card">
+    <section className="flex h-full min-h-[320px] flex-col overflow-hidden rounded-xl border bg-card sm:min-h-[420px]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div>
           <p className="text-sm font-semibold">分析报告</p>

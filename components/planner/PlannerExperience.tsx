@@ -21,13 +21,17 @@ export function PlannerExperience({
   initialMessages = [],
 }: PlannerExperienceProps) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-      <PlannerProfilePanel profile={profile} />
-      <PlannerChat
-        key={initialSessionId ?? "new-session"}
-        initialSessionId={initialSessionId}
-        initialMessages={initialMessages}
-      />
+    <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-6">
+      <div className="order-2 lg:order-1">
+        <PlannerProfilePanel profile={profile} />
+      </div>
+      <div className="order-1 min-w-0 lg:order-2">
+        <PlannerChat
+          key={initialSessionId ?? "new-session"}
+          initialSessionId={initialSessionId}
+          initialMessages={initialMessages}
+        />
+      </div>
     </div>
   );
 }

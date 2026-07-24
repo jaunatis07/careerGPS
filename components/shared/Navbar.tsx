@@ -64,11 +64,11 @@ export function Navbar({ email, quota }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-4 sm:gap-8">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-8">
           <Link
             href="/mindmap"
-            className="shrink-0 text-base font-semibold tracking-tight"
+            className="shrink-0 text-sm font-semibold tracking-tight sm:text-base"
           >
             CareerGPS
           </Link>

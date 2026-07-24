@@ -99,10 +99,11 @@ export function AssessmentQuiz({
         </RadioGroup>
       </div>
 
-      <div className="mt-6 flex flex-wrap justify-between gap-2">
+      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
         <Button
           type="button"
           variant="outline"
+          className="w-full sm:w-auto"
           disabled={currentIndex === 0 || isSubmitting}
           onClick={onPrevious}
         >
@@ -112,13 +113,19 @@ export function AssessmentQuiz({
         {isLastQuestion ? (
           <Button
             type="button"
+            className="w-full sm:w-auto"
             disabled={!canGoNext || isSubmitting}
             onClick={onSubmit}
           >
             {isSubmitting ? "提交中..." : "提交并生成标签"}
           </Button>
         ) : (
-          <Button type="button" disabled={!canGoNext} onClick={onNext}>
+          <Button
+            type="button"
+            className="w-full sm:w-auto"
+            disabled={!canGoNext}
+            onClick={onNext}
+          >
             下一题
           </Button>
         )}

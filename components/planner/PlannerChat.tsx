@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PLANNER_QUICK_PROMPTS } from "@/lib/ai/prompts/planner-system-prompt";
+import { CHAT_FORM_CLASS, CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
 
 interface PlannerChatProps {
@@ -107,8 +108,13 @@ export function PlannerChat({
   }
 
   return (
-    <section className="flex h-[min(75vh,720px)] flex-col overflow-hidden rounded-xl border bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+    <section
+      className={cn(
+        "flex flex-col overflow-hidden rounded-xl border bg-card",
+        CHAT_PANEL_HEIGHT_CLASS,
+      )}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2.5 sm:px-4 sm:py-3">
         <div className="flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Sparkles className="size-4" />
@@ -117,7 +123,7 @@ export function PlannerChat({
             <p className="text-sm font-semibold">生涯规划 Agent</p>
             <p className="text-xs text-muted-foreground">
               {sessionId
-                ? `会话 ${sessionId.slice(0, 8)}… · 刷新页面可恢复记录`
+                ? `会话 ${sessionId.slice(0, 8)}…`
                 : "发送消息开始新对话"}
             </p>
           </div>
@@ -170,7 +176,7 @@ export function PlannerChat({
             <div
               key={message.id}
               className={cn(
-                "max-w-[92%] rounded-xl px-3 py-2 text-sm leading-relaxed",
+                "max-w-[95%] rounded-xl px-3 py-2 text-sm leading-relaxed sm:max-w-[92%]",
                 message.role === "user"
                   ? "ml-auto bg-primary text-primary-foreground"
                   : "border bg-muted/40",
@@ -195,17 +201,19 @@ export function PlannerChat({
         </div>
       </ScrollArea>
 
-      <form
-        className="flex items-center gap-2 border-t p-4"
-        onSubmit={handleSubmit}
-      >
+      <form className={CHAT_FORM_CLASS} onSubmit={handleSubmit}>
         <Input
           value={input}
-          placeholder="描述你的阶段目标或困惑，如：大二想转 AI 产品岗..."
+          placeholder="描述你的阶段目标或困惑..."
           disabled={isGenerating}
+          className="min-h-10 flex-1"
           onChange={(event) => setInput(event.target.value)}
         />
-        <Button type="submit" disabled={isGenerating || !input.trim()}>
+        <Button
+          type="submit"
+          className="w-full shrink-0 sm:w-auto"
+          disabled={isGenerating || !input.trim()}
+        >
           发送
         </Button>
       </form>

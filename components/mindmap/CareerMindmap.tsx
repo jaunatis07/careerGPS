@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { MINDMAP_TREE_SCROLL_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
 import { isCareerLeaf } from "@/lib/constants/career-tree";
 import type { CareerNode } from "@/types";
@@ -39,7 +40,7 @@ export function CareerTreeNode({
           type="button"
           variant={isSelected ? "default" : "outline"}
           size="sm"
-          className="mb-2 h-8 w-full justify-start font-normal sm:w-auto sm:min-w-40"
+          className="mb-2 h-10 w-full justify-start font-normal sm:h-8 sm:w-auto sm:min-w-40"
           onClick={() => onSelectJob(node.label)}
         >
           {node.label}
@@ -53,7 +54,7 @@ export function CareerTreeNode({
       <button
         type="button"
         className={cn(
-          "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium transition-colors hover:bg-muted",
+          "flex w-full min-h-11 items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted sm:min-h-0 sm:py-2",
           depth === 0 && "text-base",
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -122,10 +123,13 @@ export function CareerMindmap({
   }
 
   return (
-    <div className="rounded-xl border bg-card p-4 sm:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          点击分类展开/折叠，点击末端岗位查看 AI 透视卡片
+    <div className="rounded-xl border bg-card p-3 sm:p-6">
+      <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <p className="text-xs text-muted-foreground sm:text-sm">
+          <span className="sm:hidden">点击岗位查看 AI 透视</span>
+          <span className="hidden sm:inline">
+            点击分类展开/折叠，点击末端岗位查看 AI 透视卡片
+          </span>
         </p>
         <Button
           type="button"
@@ -137,7 +141,7 @@ export function CareerMindmap({
         </Button>
       </div>
 
-      <div className="space-y-2">
+      <div className={cn("space-y-2", MINDMAP_TREE_SCROLL_CLASS)}>
         {tree.map((node) => (
           <CareerTreeNode
             key={node.id}

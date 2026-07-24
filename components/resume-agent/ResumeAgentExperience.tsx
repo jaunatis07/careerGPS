@@ -7,13 +7,18 @@ import { toast } from "sonner";
 import { useQuota } from "@/components/providers/QuotaProvider";
 import { ResumeAnalysisPanel } from "@/components/resume-agent/ResumeAnalysisPanel";
 import { ResumeInputPanel } from "@/components/resume-agent/ResumeInputPanel";
+import { Button } from "@/components/ui/button";
 import type { CompanyRiskReport } from "@/lib/ai/prompts/resume-system-prompt";
 import { fetchJsonWithToast } from "@/lib/client/quota-fetch";
+import { CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
 import {
   extractCompanyName,
   shouldRunCompanyCheck,
 } from "@/lib/resume/company-utils";
 import { detectAnalysisMode } from "@/lib/resume/detect-analysis-mode";
+import { cn } from "@/lib/utils";
+
+type MobileTab = "input" | "result";
 
 /**
  * 简历排雷 Agent 主体验：输入 → 脱敏预览 → 企业排雷 → 流式分析。
@@ -24,6 +29,7 @@ export function ResumeAgentExperience() {
   const [companyRisk, setCompanyRisk] = useState<CompanyRiskReport | null>(
     null,
   );
+  const [mobileTab, setMobileTab] = useState<MobileTab>("input");
   const { assertQuotaAvailable, refreshQuota, quotaAwareFetch } = useQuota();
 
   const mode = useMemo(
@@ -77,6 +83,12 @@ export function ResumeAgentExperience() {
     };
   }, [jdText]);
 
+  useEffect(() => {
+    if (isLoading || completion) {
+      setMobileTab("result");
+    }
+  }, [isLoading, completion]);
+
   async function handleAnalyze() {
     if (!mode || isLoading || !assertQuotaAvailable()) {
       return;
@@ -94,22 +106,55 @@ export function ResumeAgentExperience() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <ResumeInputPanel
-        jdText={jdText}
-        resumeText={resumeText}
-        onJdChange={setJdText}
-        onResumeChange={setResumeText}
-        onAnalyze={() => void handleAnalyze()}
-        isAnalyzing={isLoading}
-      />
-      <ResumeAnalysisPanel
-        mode={mode}
-        companyRisk={companyRisk}
-        completion={completion}
-        isLoading={isLoading}
-        error={error}
-      />
+    <div className="space-y-4">
+      <div className="flex gap-2 lg:hidden">
+        <Button
+          type="button"
+          size="sm"
+          variant={mobileTab === "input" ? "default" : "outline"}
+          className="flex-1"
+          onClick={() => setMobileTab("input")}
+        >
+          输入内容
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={mobileTab === "result" ? "default" : "outline"}
+          className="flex-1"
+          onClick={() => setMobileTab("result")}
+        >
+          分析报告
+        </Button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className={cn(mobileTab !== "input" && "hidden lg:block")}>
+          <ResumeInputPanel
+            jdText={jdText}
+            resumeText={resumeText}
+            onJdChange={setJdText}
+            onResumeChange={setResumeText}
+            onAnalyze={() => void handleAnalyze()}
+            isAnalyzing={isLoading}
+          />
+        </div>
+        <div
+          className={cn(
+            mobileTab !== "result" && "hidden lg:block",
+            CHAT_PANEL_HEIGHT_CLASS,
+            "min-h-0 lg:min-h-[420px]",
+          )}
+        >
+          <ResumeAnalysisPanel
+            mode={mode}
+            companyRisk={companyRisk}
+            completion={completion}
+            isLoading={isLoading}
+            error={error}
+          />
+        </div>
+      </div>
     </div>
   );
 }
