@@ -27,7 +27,7 @@ interface LoginFormProps {
 const MIN_PASSWORD_LENGTH = 6;
 
 /**
- * 登录/注册表单：邮箱 + 密码，以及 GitHub OAuth。
+ * 登录/注册表单：纯邮箱 + 密码。
  */
 export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
   const router = useRouter();
@@ -108,40 +108,11 @@ export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
     }
   }
 
-  async function handleGitHubLogin() {
-    resetFeedback();
-    setIsLoading(true);
-
-    try {
-      const supabase = createClient();
-      const callbackUrl = new URL("/auth/callback", window.location.origin);
-      callbackUrl.searchParams.set("next", destination);
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
-        options: {
-          redirectTo: callbackUrl.toString(),
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "GitHub 登录失败，请稍后重试",
-      );
-      setIsLoading(false);
-    }
-  }
-
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>登录 / 注册 CareerGPS</CardTitle>
-        <CardDescription>
-          使用邮箱与密码注册或登录，也可通过 GitHub 快捷登录
-        </CardDescription>
+        <CardDescription>使用邮箱与密码注册或登录</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
@@ -230,25 +201,6 @@ export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
                 : "注册并登录"}
           </Button>
         </form>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">或</span>
-          </div>
-        </div>
-
-        <Button
-          className="w-full"
-          type="button"
-          variant="outline"
-          disabled={isLoading}
-          onClick={handleGitHubLogin}
-        >
-          使用 GitHub 登录
-        </Button>
 
         {message ? (
           <p
