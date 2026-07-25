@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -12,6 +12,10 @@ import { useQuota } from "@/components/providers/QuotaProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  createChatTransport,
+  submitChatMessage,
+} from "@/lib/client/chat-transport";
 import { PLANNER_QUICK_PROMPTS } from "@/lib/ai/prompts/planner-system-prompt";
 import { CHAT_FORM_CLASS, CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
@@ -37,27 +41,14 @@ export function PlannerChat({
 
   const transport = useMemo(
     () =>
-      new DefaultChatTransport({
-        api: "/api/chat",
-        prepareSendMessagesRequest: ({ messages, id }) => ({
-          body: {
-            messages,
-            id,
-            sessionId: sessionIdRef.current,
-            agentType: "planner",
-          },
-        }),
-        fetch: async (input, init) => {
-          const response = await quotaAwareFetch(input, init);
-          const nextSessionId = response.headers.get("X-Chat-Session-Id");
-
-          if (nextSessionId && nextSessionId !== sessionIdRef.current) {
-            sessionIdRef.current = nextSessionId;
-            setSessionId(nextSessionId);
-          }
-
-          return response;
+      createChatTransport({
+        agentType: "planner",
+        getSessionId: () => sessionIdRef.current,
+        onSessionId: (nextSessionId) => {
+          sessionIdRef.current = nextSessionId;
+          setSessionId(nextSessionId);
         },
+        quotaAwareFetch,
       }),
     [quotaAwareFetch],
   );
@@ -70,7 +61,12 @@ export function PlannerChat({
       void refreshQuota();
     },
     onError: (chatError) => {
-      toast.error(chatError.message);
+      console.error("[CareerGPS][Chat] useChat onError", {
+        agentType: "planner",
+        message: chatError.message,
+        error: chatError,
+      });
+      toast.error(chatError.message || "发送失败，请稍后重试");
     },
   });
 
@@ -87,14 +83,22 @@ export function PlannerChat({
   }
 
   async function submitText(text: string) {
-    const trimmed = text.trim();
-
-    if (!trimmed || isGenerating || !assertQuotaAvailable()) {
-      return;
+    try {
+      await submitChatMessage({
+        text,
+        agentType: "planner",
+        isGenerating,
+        assertQuotaAvailable,
+        sendMessage,
+        getSessionId: () => sessionIdRef.current,
+        onBeforeSend: () => setInput(""),
+        onSendFailed: (failedText) => setInput(failedText),
+      });
+    } catch (sendError) {
+      const message =
+        sendError instanceof Error ? sendError.message : "发送失败，请稍后重试";
+      toast.error(message);
     }
-
-    setInput("");
-    await sendMessage({ text: trimmed });
   }
 
   function handleNewChat() {

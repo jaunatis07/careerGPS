@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,6 +9,10 @@ import { useQuota } from "@/components/providers/QuotaProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  createChatTransport,
+  submitChatMessage,
+} from "@/lib/client/chat-transport";
 import type { AgentType } from "@/lib/ai/system-prompts";
 import { CHAT_FORM_CLASS, CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
@@ -36,27 +40,14 @@ export function ChatBox({
 
   const transport = useMemo(
     () =>
-      new DefaultChatTransport({
-        api: "/api/chat",
-        prepareSendMessagesRequest: ({ messages, id }) => ({
-          body: {
-            messages,
-            id,
-            sessionId: sessionIdRef.current,
-            agentType,
-          },
-        }),
-        fetch: async (input, init) => {
-          const response = await quotaAwareFetch(input, init);
-          const nextSessionId = response.headers.get("X-Chat-Session-Id");
-
-          if (nextSessionId && nextSessionId !== sessionIdRef.current) {
-            sessionIdRef.current = nextSessionId;
-            setSessionId(nextSessionId);
-          }
-
-          return response;
+      createChatTransport({
+        agentType,
+        getSessionId: () => sessionIdRef.current,
+        onSessionId: (nextSessionId) => {
+          sessionIdRef.current = nextSessionId;
+          setSessionId(nextSessionId);
         },
+        quotaAwareFetch,
       }),
     [agentType, quotaAwareFetch],
   );
@@ -69,7 +60,12 @@ export function ChatBox({
       void refreshQuota();
     },
     onError: (chatError) => {
-      toast.error(chatError.message);
+      console.error("[CareerGPS][Chat] useChat onError", {
+        agentType,
+        message: chatError.message,
+        error: chatError,
+      });
+      toast.error(chatError.message || "发送失败，请稍后重试");
     },
   });
 
@@ -83,14 +79,22 @@ export function ChatBox({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const text = input.trim();
-
-    if (!text || isGenerating || !assertQuotaAvailable()) {
-      return;
+    try {
+      await submitChatMessage({
+        text: input,
+        agentType,
+        isGenerating,
+        assertQuotaAvailable,
+        sendMessage,
+        getSessionId: () => sessionIdRef.current,
+        onBeforeSend: () => setInput(""),
+        onSendFailed: (failedText) => setInput(failedText),
+      });
+    } catch (sendError) {
+      const message =
+        sendError instanceof Error ? sendError.message : "发送失败，请稍后重试";
+      toast.error(message);
     }
-
-    setInput("");
-    await sendMessage({ text });
   }
 
   return (
