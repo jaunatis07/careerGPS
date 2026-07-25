@@ -1,6 +1,11 @@
 import { generateText, streamText, type ModelMessage } from "ai";
 
 import { getDefaultChatModel } from "@/lib/ai/deepseek";
+import {
+  formatDeepSeekClientError,
+  logDeepSeekError,
+  logDeepSeekRequestMeta,
+} from "@/lib/ai/deepseek-log";
 import { getDeepSeekApiKey } from "@/lib/ai/env";
 
 export interface DeepSeekMessage {
@@ -16,7 +21,9 @@ export interface DeepSeekRunOptions {
   onFinish?: (text: string) => Promise<void> | void;
 }
 
-function normalizeMessages(options: DeepSeekRunOptions): ModelMessage[] | undefined {
+function normalizeMessages(
+  options: DeepSeekRunOptions,
+): ModelMessage[] | undefined {
   if (options.messages && options.messages.length > 0) {
     return options.messages;
   }
@@ -36,23 +43,31 @@ export function assertDeepSeekConfigured() {
  */
 export async function generateDeepSeekText(options: DeepSeekRunOptions) {
   assertDeepSeekConfigured();
+  logDeepSeekRequestMeta("generate");
 
   const messages = normalizeMessages(options);
   const model = getDefaultChatModel();
 
-  const { text } = messages
-    ? await generateText({
-        model,
-        system: options.system,
-        messages,
-      })
-    : await generateText({
-        model,
-        system: options.system,
-        prompt: options.prompt ?? "",
-      });
+  try {
+    const { text } = messages
+      ? await generateText({
+          model,
+          system: options.system,
+          messages,
+          abortSignal: options.abortSignal,
+        })
+      : await generateText({
+          model,
+          system: options.system,
+          prompt: options.prompt ?? "",
+          abortSignal: options.abortSignal,
+        });
 
-  return text.trim();
+    return text.trim();
+  } catch (error) {
+    logDeepSeekError("generateDeepSeekText failed", error);
+    throw new Error(formatDeepSeekClientError(error), { cause: error });
+  }
 }
 
 /**
@@ -60,6 +75,7 @@ export async function generateDeepSeekText(options: DeepSeekRunOptions) {
  */
 export function streamDeepSeekText(options: DeepSeekRunOptions) {
   assertDeepSeekConfigured();
+  logDeepSeekRequestMeta("stream");
 
   const messages = normalizeMessages(options);
   const model = getDefaultChatModel();
@@ -68,12 +84,24 @@ export function streamDeepSeekText(options: DeepSeekRunOptions) {
     model,
     system: options.system,
     abortSignal: options.abortSignal,
+    onError: ({ error }: { error: unknown }) => {
+      logDeepSeekError("streamDeepSeekText onError", error);
+    },
     onFinish: async ({ text }: { text: string }) => {
-      await options.onFinish?.(text);
+      try {
+        await options.onFinish?.(text);
+      } catch (finishError) {
+        logDeepSeekError("streamDeepSeekText onFinish callback failed", finishError);
+      }
     },
   };
 
-  return messages
-    ? streamText({ ...shared, messages })
-    : streamText({ ...shared, prompt: options.prompt ?? "" });
+  try {
+    return messages
+      ? streamText({ ...shared, messages })
+      : streamText({ ...shared, prompt: options.prompt ?? "" });
+  } catch (error) {
+    logDeepSeekError("streamDeepSeekText init failed", error);
+    throw new Error(formatDeepSeekClientError(error), { cause: error });
+  }
 }

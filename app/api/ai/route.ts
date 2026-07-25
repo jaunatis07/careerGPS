@@ -4,6 +4,10 @@ import {
 } from "@/lib/quota/consume-user-quota";
 import { QuotaExceededError } from "@/lib/quota/quota-errors";
 import {
+  formatDeepSeekClientError,
+  logDeepSeekError,
+} from "@/lib/ai/deepseek-log";
+import {
   generateDeepSeekText,
   streamDeepSeekText,
   type DeepSeekMessage,
@@ -112,15 +116,10 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 429 });
     }
 
-    console.error("[CareerGPS] /api/ai error:", error);
+    logDeepSeekError("POST /api/ai failed", error);
 
     return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "AI 请求失败，请稍后重试",
-      },
+      { error: formatDeepSeekClientError(error) },
       { status: 500 },
     );
   }

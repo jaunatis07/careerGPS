@@ -4,6 +4,7 @@ import {
 } from "ai";
 
 import { getUserChatContext } from "@/lib/ai/get-user-chat-context";
+import { formatDeepSeekClientError, logDeepSeekError } from "@/lib/ai/deepseek-log";
 import { streamDeepSeekText } from "@/lib/ai/deepseek-request";
 import {
   buildSystemPrompt,
@@ -113,15 +114,10 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 429 });
     }
 
-    console.error("[CareerGPS] Chat API error:", error);
+    logDeepSeekError("POST /api/chat failed", error);
 
     return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "AI 对话请求失败，请稍后重试",
-      },
+      { error: formatDeepSeekClientError(error) },
       { status: 500 },
     );
   }
