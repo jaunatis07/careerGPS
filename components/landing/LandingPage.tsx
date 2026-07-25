@@ -31,36 +31,42 @@ const FEATURES = [
  */
 export function LandingPage() {
   return (
-    <main className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-16 sm:px-6">
-      <div className="mx-auto w-full max-w-2xl text-center">
-        <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
-          CareerGPS
-        </h1>
+    <main className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-20 sm:px-6">
+      <div className="mx-auto w-full max-w-xl text-center">
+        <header className="space-y-5">
+          <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
+            CareerGPS
+          </h1>
+          <p className="mx-auto max-w-lg text-base leading-relaxed text-muted-foreground sm:text-[1.0625rem] sm:leading-7">
+            一款专为求职者打造的 AI 智能职业规划平台，帮你从认知自我到精准通关。
+          </p>
+        </header>
 
-        <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
-          一款专为求职者打造的 AI 智能职业规划平台，帮你从认知自我到精准通关。
-        </p>
-
-        <ul className="mt-12 space-y-4 text-left">
-          {FEATURES.map((feature) => (
-            <li
-              key={feature.title}
-              className="rounded-xl border bg-card/50 px-5 py-4 transition-colors hover:bg-card"
-            >
-              <h2 className="text-sm font-semibold">{feature.title}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+        <ol className="mt-16 space-y-14 sm:mt-20 sm:space-y-16">
+          {FEATURES.map((feature, index) => (
+            <li key={feature.title} className="list-none space-y-3">
+              <p
+                aria-hidden
+                className="text-[0.6875rem] font-medium tracking-[0.28em] text-muted-foreground/45 tabular-nums"
+              >
+                {String(index + 1).padStart(2, "0")}
+              </p>
+              <h2 className="text-[0.9375rem] font-medium tracking-wide text-foreground/90 sm:text-base">
+                {feature.title}
+              </h2>
+              <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] sm:leading-7">
                 {feature.description}
               </p>
             </li>
           ))}
-        </ul>
+        </ol>
 
-        <div className="mt-12">
+        <div className="mt-16 sm:mt-20">
           <Link
             href="/login"
             className={cn(
               buttonVariants({ variant: "default", size: "lg" }),
-              "h-11 min-w-[200px] px-8 text-base",
+              "h-11 min-w-[220px] px-8 text-base shadow-sm",
             )}
           >
             前往登录 / 注册
