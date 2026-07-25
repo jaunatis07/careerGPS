@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { submitAssessment } from "@/app/(dashboard)/assessment/actions";
 import { AssessmentQuiz } from "@/components/assessment/AssessmentQuiz";
 import { AssessmentResult } from "@/components/assessment/AssessmentResult";
+import { CareerSuggestionCard } from "@/components/assessment/CareerSuggestionCard";
 import { ProfileBasicsSection } from "@/components/assessment/ProfileBasicsSection";
 import { Button } from "@/components/ui/button";
 import { isAssessmentComplete } from "@/lib/assessment/calculate-tags";
@@ -126,6 +127,11 @@ export function AssessmentExperience({
       ) : (
         <>
           <AssessmentResult
+            tags={resultTags}
+            mbti={savedMbti}
+            holland={savedHolland}
+          />
+          <CareerSuggestionCard
             tags={resultTags}
             mbti={savedMbti}
             holland={savedHolland}
