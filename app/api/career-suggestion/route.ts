@@ -1,10 +1,8 @@
-import { generateText } from "ai";
-
-import { getDefaultChatModel } from "@/lib/ai/deepseek";
 import {
   buildCareerSuggestionSystemPrompt,
   buildCareerSuggestionUserPrompt,
 } from "@/lib/ai/prompts/career-suggestion-prompt";
+import { generateDeepSeekText } from "@/lib/ai/deepseek-request";
 import {
   assertQuotaAvailable,
   consumeUserQuota,
@@ -22,7 +20,7 @@ interface CareerSuggestionBody {
 
 /**
  * POST /api/career-suggestion
- * 根据测评标签生成简短职业选择方向建议。
+ * 根据测评标签生成简短职业选择方向建议（底层走统一 DeepSeek 调用层）。
  */
 export async function POST(request: Request) {
   try {
@@ -53,15 +51,14 @@ export async function POST(request: Request) {
       tags,
     };
 
-    const { text } = await generateText({
-      model: getDefaultChatModel(),
+    const suggestion = await generateDeepSeekText({
       system: buildCareerSuggestionSystemPrompt(),
       prompt: buildCareerSuggestionUserPrompt(context),
     });
 
     await consumeUserQuota(user.id);
 
-    return Response.json({ suggestion: text.trim() });
+    return Response.json({ suggestion });
   } catch (error) {
     if (error instanceof QuotaExceededError) {
       return Response.json({ error: error.message }, { status: 429 });

@@ -179,7 +179,7 @@ export function ResumeInputPanel({
           disabled={!mode || isAnalyzing}
           onClick={onAnalyze}
         >
-          {isAnalyzing ? "分析中…" : "开始排雷分析"}
+          {isAnalyzing ? "DeepSeek 分析中…" : "开始排雷分析"}
         </Button>
       </div>
     </section>

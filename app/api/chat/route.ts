@@ -1,11 +1,10 @@
 import {
   convertToModelMessages,
-  streamText,
   type UIMessage,
 } from "ai";
 
 import { getUserChatContext } from "@/lib/ai/get-user-chat-context";
-import { getDefaultChatModel } from "@/lib/ai/deepseek";
+import { streamDeepSeekText } from "@/lib/ai/deepseek-request";
 import {
   buildSystemPrompt,
   type AgentType,
@@ -90,12 +89,11 @@ export async function POST(request: Request) {
     const userContext = await getUserChatContext(user.id);
     const system = buildSystemPrompt(body.agentType, userContext);
 
-    const result = streamText({
-      model: getDefaultChatModel(),
+    const result = streamDeepSeekText({
       system,
       messages: await convertToModelMessages(body.messages),
       abortSignal: request.signal,
-      onFinish: async ({ text }) => {
+      onFinish: async (text) => {
         try {
           await saveChatMessage(session.id, "assistant", text);
           await consumeUserQuota(user.id);

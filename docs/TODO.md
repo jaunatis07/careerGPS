@@ -66,10 +66,10 @@
   * 任务：编写正则脱敏函数，将输入的文本/文件内容中的手机号、邮箱、身份证、真实姓名屏蔽遮蔽。  
   * 验证：输入“我叫张三，电话13800138000”，输出“我叫**，电话138****8000”。
 
-- [x] **4.4 模块五：岗位排雷 / JD / 简历 Agent 页 (`/resume-agent`)**  
+- [x] **4.4 模块五：岗位排雷 / JD / 简历 Agent 页 (`/resume-agent` · `/practical`)**  
   * 任务：实现文件/图片解析上传，过脱敏逻辑后交由 AI。根据上传内容（单JD / 单简历 / JD+简历）触发动态路由分析；若为初创公司，调用企业数据接口查询资质风险。  
   * 验证：上传简历+JD 截图，AI 准确输出胜任力 Match 打分与 Markdown 改写建议。
-  * 实现：`/api/parse-resume`（解析+脱敏）、`/api/company-check`（企业排雷 mock）、`/api/resume-agent`（流式分析）、`components/resume-agent/*`；文本/.txt 上传已支持，图片 OCR 预留后续扩展。
+  * 实现：`/api/parse-resume`（解析+脱敏）、`/api/company-check`（企业排雷 mock）、`/api/resume-agent`（DeepSeek 流式结构化报告）、`components/resume-agent/*`；页面入口 `/resume-agent`、`/practical`（实战演练）、`/resume`（重定向）；文本/.txt 上传已支持，图片 OCR 预留后续扩展。
 
 ---
 

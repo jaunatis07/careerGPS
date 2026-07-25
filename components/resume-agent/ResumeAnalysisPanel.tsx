@@ -87,10 +87,15 @@ export function ResumeAnalysisPanel({
 
       <ScrollArea className="flex-1 px-4 py-4">
         {!hasOutput ? (
-          <p className="text-sm text-muted-foreground">
-            AI 将根据你提供的内容输出：JD 拆解 / 简历诊断 / 匹配打分与 Markdown
-            改写建议。初创或未知公司会附带企业风险提醒。
-          </p>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>AI 将按以下结构流式输出报告：</p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>核心结论（含 Match 分数，若同时提供 JD+简历）</li>
+              <li>排雷要点（企业与 JD 风险）</li>
+              <li>深度分析（匹配 Gap / JD 拆解 / 简历诊断）</li>
+              <li>修改与行动建议（Markdown 分模块改写）</li>
+            </ul>
+          </div>
         ) : (
           <article className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
             {completion}

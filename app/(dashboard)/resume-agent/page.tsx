@@ -5,7 +5,7 @@ export default function ResumeAgentPage() {
   return (
     <PageShell
       title="简历排雷"
-      description="粘贴或上传 JD 与简历，平台自动脱敏后由 AI 进行匹配分析、风险排雷与改写建议。"
+      description="求职实战：粘贴或上传 JD 与简历，平台自动脱敏后由 DeepSeek 输出结构化排雷分析、Match 打分与改写建议。"
     >
       <ResumeAgentExperience />
     </PageShell>

@@ -1,10 +1,8 @@
-import { streamText } from "ai";
-
 import {
   buildResumeAnalysisSystemPrompt,
   buildResumeAnalysisUserPrompt,
 } from "@/lib/ai/prompts/resume-system-prompt";
-import { getDefaultChatModel } from "@/lib/ai/deepseek";
+import { streamDeepSeekText } from "@/lib/ai/deepseek-request";
 import { checkCompanyRisk } from "@/lib/resume/company-check";
 import {
   extractCompanyName,
@@ -28,7 +26,7 @@ interface ResumeAgentBody {
 
 /**
  * POST /api/resume-agent
- * 简历排雷 Agent：脱敏 → 动态路由 → 企业排雷 → 流式分析报告。
+ * 简历排雷 Agent：脱敏 → 动态路由 → 企业排雷 → DeepSeek 流式结构化报告。
  */
 export async function POST(request: Request) {
   try {
@@ -80,8 +78,7 @@ export async function POST(request: Request) {
       companyRisk,
     };
 
-    const result = streamText({
-      model: getDefaultChatModel(),
+    const result = streamDeepSeekText({
       system: buildResumeAnalysisSystemPrompt(context),
       prompt: buildResumeAnalysisUserPrompt(context),
       abortSignal: request.signal,
@@ -97,7 +94,9 @@ export async function POST(request: Request) {
     return result.toTextStreamResponse({
       headers: {
         "X-Analysis-Mode": mode,
-        ...(companyName ? { "X-Company-Name": encodeURIComponent(companyName) } : {}),
+        ...(companyName
+          ? { "X-Company-Name": encodeURIComponent(companyName) }
+          : {}),
       },
     });
   } catch (error) {
