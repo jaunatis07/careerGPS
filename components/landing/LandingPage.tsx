@@ -31,37 +31,39 @@ const FEATURES = [
  */
 export function LandingPage() {
   return (
-    <main className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-20 sm:px-6">
+    <main className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12 sm:px-6 sm:py-14">
       <div className="mx-auto w-full max-w-xl text-center">
-        <header className="space-y-5">
+        <header className="space-y-3">
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
             CareerGPS
           </h1>
-          <p className="mx-auto max-w-lg text-base leading-relaxed text-muted-foreground sm:text-[1.0625rem] sm:leading-7">
+          <p className="mx-auto max-w-lg text-base leading-6 text-muted-foreground sm:text-[1.0625rem]">
             一款专为求职者打造的 AI 智能职业规划平台，帮你从认知自我到精准通关。
           </p>
         </header>
 
-        <ol className="mt-16 space-y-14 sm:mt-20 sm:space-y-16">
+        <ol className="mt-10 space-y-7 sm:mt-11 sm:space-y-8">
           {FEATURES.map((feature, index) => (
-            <li key={feature.title} className="list-none space-y-3">
-              <p
-                aria-hidden
-                className="text-[0.6875rem] font-medium tracking-[0.28em] text-muted-foreground/45 tabular-nums"
-              >
-                {String(index + 1).padStart(2, "0")}
-              </p>
-              <h2 className="text-[0.9375rem] font-medium tracking-wide text-foreground/90 sm:text-base">
-                {feature.title}
-              </h2>
-              <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] sm:leading-7">
-                {feature.description}
-              </p>
+            <li key={feature.title} className="list-none">
+              <div className="mx-auto max-w-md space-y-1">
+                <p
+                  aria-hidden
+                  className="text-[0.6875rem] font-medium tracking-[0.28em] text-muted-foreground/45 tabular-nums"
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </p>
+                <h2 className="text-[0.9375rem] font-medium leading-snug tracking-wide text-foreground/90 sm:text-base">
+                  {feature.title}
+                </h2>
+                <p className="pt-0.5 text-sm leading-snug text-muted-foreground sm:text-[0.9375rem]">
+                  {feature.description}
+                </p>
+              </div>
             </li>
           ))}
         </ol>
 
-        <div className="mt-16 sm:mt-20">
+        <div className="mt-10 sm:mt-11">
           <Link
             href="/login"
             className={cn(
