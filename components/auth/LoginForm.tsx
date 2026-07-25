@@ -15,78 +15,93 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_AUTH_REDIRECT } from "@/lib/constants/auth";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
-type LoginStep = "email" | "otp";
+type AuthMode = "signin" | "signup";
 
 interface LoginFormProps {
   redirectTo?: string;
   initialError?: string;
 }
 
+const MIN_PASSWORD_LENGTH = 6;
+
 /**
- * 登录/注册表单：支持邮箱验证码（OTP）与 GitHub OAuth 两种方式。
+ * 登录/注册表单：邮箱 + 密码，以及 GitHub OAuth。
  */
 export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
   const router = useRouter();
-  const [step, setStep] = useState<LoginStep>("email");
+  const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string | null>(initialError ?? null);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const destination = redirectTo || DEFAULT_AUTH_REDIRECT;
 
-  async function handleSendOtp(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function resetFeedback() {
     setMessage(null);
-    setIsLoading(true);
-
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      setStep("otp");
-      setMessage("验证码已发送，请查收邮箱（含垃圾箱）");
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "发送验证码失败，请稍后重试",
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    setIsSuccess(false);
   }
 
-  async function handleVerifyOtp(event: React.FormEvent<HTMLFormElement>) {
+  function switchMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setPassword("");
+    setConfirmPassword("");
+    resetFeedback();
+  }
+
+  async function handleEmailAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
+    resetFeedback();
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: "email",
-      });
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        throw new Error(`密码至少 ${MIN_PASSWORD_LENGTH} 位`);
+      }
 
-      if (error) {
-        throw error;
+      if (mode === "signup" && password !== confirmPassword) {
+        throw new Error("两次输入的密码不一致");
+      }
+
+      const supabase = createClient();
+
+      if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data.session) {
+          setIsSuccess(true);
+          setMessage(
+            "注册成功。若 Supabase 开启了邮箱确认，请先查收确认邮件；否则请直接切换到「登录」",
+          );
+          return;
+        }
       }
 
       router.push(destination);
       router.refresh();
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "验证码无效或已过期，请重试",
+        error instanceof Error ? error.message : "操作失败，请稍后重试",
       );
     } finally {
       setIsLoading(false);
@@ -94,7 +109,7 @@ export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
   }
 
   async function handleGitHubLogin() {
-    setMessage(null);
+    resetFeedback();
     setIsLoading(true);
 
     try {
@@ -125,65 +140,96 @@ export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
       <CardHeader>
         <CardTitle>登录 / 注册 CareerGPS</CardTitle>
         <CardDescription>
-          使用邮箱验证码或 GitHub 账号登录，新用户将自动注册
+          使用邮箱与密码注册或登录，也可通过 GitHub 快捷登录
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {step === "email" ? (
-          <form className="space-y-4" onSubmit={handleSendOtp}>
-            <div className="space-y-2">
-              <Label htmlFor="email">邮箱地址</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
-            <Button className="w-full" type="submit" disabled={isLoading}>
-              {isLoading ? "发送中..." : "发送验证码"}
-            </Button>
-          </form>
-        ) : (
-          <form className="space-y-4" onSubmit={handleVerifyOtp}>
-            <div className="space-y-2">
-              <Label htmlFor="otp">邮箱验证码</Label>
-              <Input
-                id="otp"
-                type="text"
-                inputMode="numeric"
-                placeholder="输入 6 位验证码"
-                value={otp}
-                onChange={(event) => setOtp(event.target.value)}
-                required
-                maxLength={6}
-                autoComplete="one-time-code"
-              />
-              <p className="text-xs text-muted-foreground">
-                验证码已发送至 {email}
-              </p>
-            </div>
-            <Button className="w-full" type="submit" disabled={isLoading}>
-              {isLoading ? "验证中..." : "验证并登录"}
-            </Button>
-            <Button
-              className="w-full"
-              type="button"
-              variant="outline"
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+          <button
+            type="button"
+            className={cn(
+              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              mode === "signin"
+                ? "bg-background shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            disabled={isLoading}
+            onClick={() => switchMode("signin")}
+          >
+            登录
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              mode === "signup"
+                ? "bg-background shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            disabled={isLoading}
+            onClick={() => switchMode("signup")}
+          >
+            注册
+          </button>
+        </div>
+
+        <form className="space-y-4" onSubmit={handleEmailAuth}>
+          <div className="space-y-2">
+            <Label htmlFor="email">邮箱地址</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              autoComplete="email"
               disabled={isLoading}
-              onClick={() => {
-                setStep("email");
-                setOtp("");
-                setMessage(null);
-              }}
-            >
-              更换邮箱
-            </Button>
-          </form>
-        )}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">密码</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder={`至少 ${MIN_PASSWORD_LENGTH} 位`}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={MIN_PASSWORD_LENGTH}
+              autoComplete={
+                mode === "signin" ? "current-password" : "new-password"
+              }
+              disabled={isLoading}
+            />
+          </div>
+
+          {mode === "signup" ? (
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">确认密码</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="再次输入密码"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                required
+                minLength={MIN_PASSWORD_LENGTH}
+                autoComplete="new-password"
+                disabled={isLoading}
+              />
+            </div>
+          ) : null}
+
+          <Button className="w-full" type="submit" disabled={isLoading}>
+            {isLoading
+              ? "处理中..."
+              : mode === "signin"
+                ? "登录"
+                : "注册并登录"}
+          </Button>
+        </form>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -206,11 +252,12 @@ export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
 
         {message ? (
           <p
-            className={`text-sm ${
-              message.includes("已发送")
+            className={cn(
+              "text-sm",
+              isSuccess
                 ? "text-green-600 dark:text-green-400"
-                : "text-destructive"
-            }`}
+                : "text-destructive",
+            )}
           >
             {message}
           </p>
