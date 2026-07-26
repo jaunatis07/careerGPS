@@ -1,6 +1,8 @@
 const OFFICIAL_DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 /** deepseek-chat 已于 2026-07-24 弃用，官方后继模型为 deepseek-v4-flash */
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
+/** 视觉识图默认模型（需支持 image_url 多模态；可通过 DEEPSEEK_VISION_MODEL 覆盖） */
+const DEFAULT_DEEPSEEK_VISION_MODEL = "deepseek-v4-pro";
 
 /** DeepSeek API Key，仅服务端使用 */
 export function getDeepSeekApiKey() {
@@ -43,8 +45,8 @@ export function getDeepSeekChatModel() {
   return model || DEFAULT_DEEPSEEK_MODEL;
 }
 
-/** 图片 OCR 视觉模型（默认与对话模型一致） */
+/** 图片 OCR 视觉模型（默认 deepseek-v4-pro，支持多模态识图） */
 export function getDeepSeekVisionModel() {
   const model = process.env.DEEPSEEK_VISION_MODEL?.trim();
-  return model || getDeepSeekChatModel();
+  return model || DEFAULT_DEEPSEEK_VISION_MODEL;
 }
