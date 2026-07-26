@@ -13,6 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { JobFavoriteButton } from "@/components/mindmap/JobFavoriteButton";
 import type { JobInsight } from "@/types";
 
 interface JobInsightPanelProps {
@@ -93,12 +94,17 @@ export function JobInsightPanel({
         showCloseButton
       >
         <SheetHeader className="shrink-0 border-b pb-4">
-          <SheetTitle className="pr-8 text-base sm:text-lg">
-            {jobTitle ?? "岗位透视"}
-          </SheetTitle>
-          <SheetDescription className="text-xs sm:text-sm">
-            AI 实时生成的岗位基本信息（薪资、技能、内卷烈度与发展路径）
-          </SheetDescription>
+          <div className="flex items-start justify-between gap-3 pr-8">
+            <div className="min-w-0 space-y-1">
+              <SheetTitle className="text-base sm:text-lg">
+                {jobTitle ?? "岗位透视"}
+              </SheetTitle>
+              <SheetDescription className="text-xs sm:text-sm">
+                AI 实时生成的岗位基本信息（薪资、技能、内卷烈度与发展路径）
+              </SheetDescription>
+            </div>
+            <JobFavoriteButton jobTitle={jobTitle} className="shrink-0" />
+          </div>
         </SheetHeader>
 
         <ScrollArea className="min-h-0 flex-1 px-4 pb-6">

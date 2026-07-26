@@ -7,6 +7,13 @@ export interface ChatSessionRecord {
   id: string;
   agent_type: AgentType;
   title: string;
+  created_at?: string;
+}
+
+export interface PlannerSessionSummary extends ChatSessionRecord {
+  created_at: string;
+  preview: string;
+  messageCount: number;
 }
 
 export interface StoredChatMessage {
@@ -53,7 +60,7 @@ export async function resolveChatSession(
   if (sessionId) {
     const { data: existingSession, error } = await supabase
       .from("chat_sessions")
-      .select("id, agent_type, title")
+      .select("id, agent_type, title, created_at")
       .eq("id", sessionId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -74,7 +81,7 @@ export async function resolveChatSession(
       agent_type: agentType,
       title: "新对话",
     })
-    .select("id, agent_type, title")
+    .select("id, agent_type, title, created_at")
     .single();
 
   if (createError || !createdSession) {
@@ -140,7 +147,7 @@ export async function getLatestChatSession(
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_sessions")
-    .select("id, agent_type, title")
+    .select("id, agent_type, title, created_at")
     .eq("user_id", userId)
     .eq("agent_type", agentType)
     .order("created_at", { ascending: false })
@@ -148,4 +155,97 @@ export async function getLatestChatSession(
     .maybeSingle();
 
   return (data as ChatSessionRecord | null) ?? null;
+}
+
+/**
+ * 读取指定用户的单个会话（校验归属）。
+ */
+export async function getChatSessionForUser(
+  userId: string,
+  sessionId: string,
+  agentType: AgentType,
+): Promise<ChatSessionRecord | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("chat_sessions")
+    .select("id, agent_type, title, created_at")
+    .eq("id", sessionId)
+    .eq("user_id", userId)
+    .eq("agent_type", agentType)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("读取会话失败，请稍后重试");
+  }
+
+  return (data as ChatSessionRecord | null) ?? null;
+}
+
+/**
+ * 列出用户指定 Agent 的会话，附带首条用户消息预览。
+ */
+export async function listPlannerSessionsForProfile(
+  userId: string,
+  limit = 20,
+): Promise<PlannerSessionSummary[]> {
+  const supabase = await createClient();
+  const { data: sessions, error } = await supabase
+    .from("chat_sessions")
+    .select("id, agent_type, title, created_at")
+    .eq("user_id", userId)
+    .eq("agent_type", "planner")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error("读取对话历史失败，请稍后重试");
+  }
+
+  const sessionList = (sessions ?? []) as PlannerSessionSummary[];
+
+  if (sessionList.length === 0) {
+    return [];
+  }
+
+  const sessionIds = sessionList.map((session) => session.id);
+  const { data: messages, error: messagesError } = await supabase
+    .from("chat_messages")
+    .select("session_id, role, content, created_at")
+    .in("session_id", sessionIds)
+    .order("created_at", { ascending: true });
+
+  if (messagesError) {
+    throw new Error("读取对话预览失败，请稍后重试");
+  }
+
+  const previewBySession = new Map<string, string>();
+  const countBySession = new Map<string, number>();
+
+  for (const message of messages ?? []) {
+    const sessionId = message.session_id as string;
+    countBySession.set(sessionId, (countBySession.get(sessionId) ?? 0) + 1);
+
+    if (
+      message.role === "user" &&
+      !previewBySession.has(sessionId) &&
+      typeof message.content === "string"
+    ) {
+      previewBySession.set(sessionId, message.content.trim());
+    }
+  }
+
+  return sessionList.map((session) => {
+    const preview = previewBySession.get(session.id) ?? "";
+    const customTitle =
+      session.title.trim() && session.title !== "新对话" ? session.title : "";
+
+    return {
+      ...session,
+      preview:
+        preview ||
+        customTitle ||
+        "尚未发送消息的生涯规划对话",
+      messageCount: countBySession.get(session.id) ?? 0,
+    };
+  });
 }

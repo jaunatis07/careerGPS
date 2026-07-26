@@ -48,6 +48,7 @@ export function PlannerChat({
         onSessionId: (nextSessionId) => {
           sessionIdRef.current = nextSessionId;
           setSessionId(nextSessionId);
+          router.replace(`/planner?session=${nextSessionId}`, { scroll: false });
         },
         quotaAwareFetch,
       }),
@@ -108,6 +109,7 @@ export function PlannerChat({
       sessionIdRef.current = newSessionId;
       setSessionId(newSessionId);
       setMessages([]);
+      router.replace(`/planner?session=${newSessionId}`, { scroll: false });
       router.refresh();
     });
   }

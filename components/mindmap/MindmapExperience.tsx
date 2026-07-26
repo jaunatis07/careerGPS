@@ -1,17 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { CareerMindmap } from "@/components/mindmap/CareerMindmap";
 import { JobInsightPanel } from "@/components/mindmap/JobInsightPanel";
-import { CAREER_TREE } from "@/lib/constants/career-tree";
+import { CAREER_TREE, getAllLeafLabels } from "@/lib/constants/career-tree";
+
+const VALID_JOB_TITLES = getAllLeafLabels();
 
 /**
  * 岗位全景页客户端容器：协调思维导图与半屏岗位透视面板。
  */
 export function MindmapExperience() {
-  const [selectedJob, setSelectedJob] = useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const jobFromQuery = searchParams.get("job");
+
+  const initialJob =
+    jobFromQuery && VALID_JOB_TITLES.includes(jobFromQuery)
+      ? jobFromQuery
+      : null;
+
+  const [selectedJob, setSelectedJob] = useState<string | null>(initialJob);
+  const [panelOpen, setPanelOpen] = useState(Boolean(initialJob));
+
+  useEffect(() => {
+    if (jobFromQuery && VALID_JOB_TITLES.includes(jobFromQuery)) {
+      setSelectedJob(jobFromQuery);
+      setPanelOpen(true);
+    }
+  }, [jobFromQuery]);
 
   function handleSelectJob(title: string) {
     setSelectedJob(title);

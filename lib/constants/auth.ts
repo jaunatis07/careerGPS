@@ -9,6 +9,7 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/resume-agent",
   "/resume",
   "/practical",
+  "/profile",
 ] as const;
 
 /** 仅未登录用户可访问的路由（已登录则重定向到 Dashboard） */

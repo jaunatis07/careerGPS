@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu } from "lucide-react";
+import { ChevronDown, LogOut, Menu, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -99,39 +99,58 @@ export function Navbar({ email, quota }: NavbarProps) {
         <div className="flex items-center gap-2 sm:gap-3">
           <QuotaBadge quota={quota} />
 
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full"
-                  aria-label="打开用户菜单"
-                />
-              }
+          <div className="flex items-center">
+            <Link
+              href="/profile"
+              aria-label="个人主页"
+              className={cn(
+                "rounded-full ring-offset-background transition-opacity hover:opacity-80",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                (pathname === "/profile" || pathname.startsWith("/profile/")) &&
+                  "ring-2 ring-primary ring-offset-2",
+              )}
             >
               <Avatar size="sm">
                 <AvatarFallback>{getEmailInitial(email)}</AvatarFallback>
               </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">已登录</span>
-                  <span className="truncate text-sm font-medium">{email}</span>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                disabled={isSigningOut}
-                onClick={handleSignOut}
+            </Link>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 rounded-full"
+                    aria-label="打开用户菜单"
+                  />
+                }
               >
-                <LogOut className="size-4" />
-                {isSigningOut ? "退出中..." : "退出登录"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <ChevronDown className="size-4 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">已登录</span>
+                    <span className="truncate text-sm font-medium">{email}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href="/profile" />}>
+                  <User className="size-4" />
+                  个人主页
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  disabled={isSigningOut}
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="size-4" />
+                  {isSigningOut ? "退出中..." : "退出登录"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
@@ -178,6 +197,18 @@ export function Navbar({ email, quota }: NavbarProps) {
                       </Link>
                     );
                   })}
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      pathname === "/profile" || pathname.startsWith("/profile/")
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    个人主页
+                  </Link>
                 </nav>
               </div>
             </SheetContent>
