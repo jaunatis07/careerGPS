@@ -89,19 +89,10 @@ export async function parseUploadedResumeDocument(
           charCount: text.length,
         };
       }
-      case "image": {
-        const mimeType = file.type || "image/png";
-        const { extractImageText } = await import("@/lib/resume/extract-image-text");
-        const result = await extractImageText(buffer, mimeType);
-
-        return {
-          text: result.text,
-          format,
-          fileName: file.name,
-          extractionMethod: result.method,
-          charCount: result.text.length,
-        };
-      }
+      case "image":
+        throw new DocumentParseError(
+          "图片 OCR 已在浏览器本地完成，请勿将图片上传到服务端",
+        );
       default:
         throw new DocumentParseError(
           `不支持的文件格式：${file.name}。请上传 PDF、Word (.docx)、文本或图片`,
@@ -113,8 +104,3 @@ export async function parseUploadedResumeDocument(
   }
 }
 
-export function documentNeedsQuota(
-  document: Pick<ParsedResumeDocument, "format" | "extractionMethod">,
-) {
-  return document.format === "image";
-}

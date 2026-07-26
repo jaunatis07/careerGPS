@@ -1,9 +1,4 @@
 import { jsonApiError } from "@/lib/api/json-api-error";
-import {
-  assertQuotaAvailable,
-  consumeUserQuota,
-} from "@/lib/quota/consume-user-quota";
-import { QuotaExceededError } from "@/lib/quota/quota-errors";
 import { isDocumentParseError } from "@/lib/resume/document-parse-error";
 import { getResumeFormatLabel } from "@/lib/resume/detect-document-format";
 import { logDocumentError } from "@/lib/resume/log-document-error";
@@ -58,21 +53,13 @@ async function handleExtractDocument(request: Request) {
     userId: user.id,
   });
 
-  const { parseUploadedResumeDocument, documentNeedsQuota } = await import(
+  const { parseUploadedResumeDocument } = await import(
     "@/lib/resume/parse-uploaded-file"
   );
 
   const parsed = await parseUploadedResumeDocument(file);
 
-  if (documentNeedsQuota(parsed)) {
-    await assertQuotaAvailable(user.id);
-  }
-
   const sanitized = sanitizeResumeTextDetailed(parsed.text);
-
-  if (documentNeedsQuota(parsed)) {
-    await consumeUserQuota(user.id);
-  }
 
   return Response.json({
     text: sanitized.text,
@@ -88,16 +75,12 @@ async function handleExtractDocument(request: Request) {
 
 /**
  * POST /api/extract-document
- * 解析上传的 JD / 简历文件（PDF、Word、文本、图片 DeepSeek OCR）。
+ * 解析上传的 JD / 简历文件（PDF、Word、文本；图片 OCR 在浏览器端完成）。
  */
 export async function POST(request: Request) {
   try {
     return await handleExtractDocument(request);
   } catch (error) {
-    if (error instanceof QuotaExceededError) {
-      return jsonApiError(error, error.message, 429);
-    }
-
     if (isDocumentParseError(error)) {
       logDocumentError("extract-document parse failed", error, {
         stage: "document-parse",
