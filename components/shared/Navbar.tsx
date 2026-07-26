@@ -1,21 +1,13 @@
 "use client";
 
-import { ChevronDown, LogOut, Menu, User } from "lucide-react";
+import { Menu } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { QuotaBadge } from "@/components/shared/QuotaBadge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -24,7 +16,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NAV_ITEMS } from "@/lib/constants/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { QuotaSummary } from "@/types";
 
@@ -41,26 +32,11 @@ function getEmailInitial(email: string) {
 }
 
 /**
- * Dashboard 顶部导航：Logo、模块 Tab、额度徽章与用户菜单；移动端使用 Sheet 抽屉。
+ * Dashboard 顶部导航：Logo、模块 Tab、额度徽章与头像；移动端使用 Sheet 抽屉。
  */
 export function Navbar({ email, quota }: NavbarProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  async function handleSignOut() {
-    setIsSigningOut(true);
-
-    try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      router.push("/login");
-      router.refresh();
-    } finally {
-      setIsSigningOut(false);
-    }
-  }
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -99,59 +75,21 @@ export function Navbar({ email, quota }: NavbarProps) {
         <div className="flex items-center gap-2 sm:gap-3">
           <QuotaBadge quota={quota} />
 
-          <div className="flex items-center">
-            <Link
-              href="/profile"
-              aria-label="个人主页"
-              title="个人主页"
-              className={cn(
-                "inline-flex shrink-0 cursor-pointer rounded-full ring-offset-background transition-opacity hover:opacity-80",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                (pathname === "/profile" || pathname.startsWith("/profile/")) &&
-                  "ring-2 ring-primary ring-offset-2",
-              )}
-            >
-              <Avatar size="sm">
-                <AvatarFallback>{getEmailInitial(email)}</AvatarFallback>
-              </Avatar>
-            </Link>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 rounded-full"
-                    aria-label="打开用户菜单"
-                  />
-                }
-              >
-                <ChevronDown className="size-4 opacity-60" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">已登录</span>
-                    <span className="truncate text-sm font-medium">{email}</span>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem render={<Link href="/profile" />}>
-                  <User className="size-4" />
-                  个人主页
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  disabled={isSigningOut}
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="size-4" />
-                  {isSigningOut ? "退出中..." : "退出登录"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <Link
+            href="/profile"
+            aria-label="个人主页"
+            title="个人主页"
+            className={cn(
+              "inline-flex shrink-0 cursor-pointer rounded-full ring-offset-background transition-opacity hover:opacity-80",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              (pathname === "/profile" || pathname.startsWith("/profile/")) &&
+                "ring-2 ring-primary ring-offset-2",
+            )}
+          >
+            <Avatar size="sm">
+              <AvatarFallback>{getEmailInitial(email)}</AvatarFallback>
+            </Avatar>
+          </Link>
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger

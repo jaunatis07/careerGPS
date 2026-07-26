@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ProfileChatHistoryCard } from "@/components/profile/ProfileChatHistoryCard";
 import { ProfileSavedJobsCard } from "@/components/profile/ProfileSavedJobsCard";
+import { ProfileSignOutButton } from "@/components/profile/ProfileSignOutButton";
 import { QuotaBadge } from "@/components/shared/QuotaBadge";
 import { PageShell } from "@/components/shared/PageShell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -62,8 +63,9 @@ export default async function ProfilePage() {
             <CardTitle className="text-base">{email}</CardTitle>
             <CardDescription>CareerGPS 账号</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
+          <CardContent className="flex flex-col items-center gap-3">
             <QuotaBadge quota={quota} />
+            <ProfileSignOutButton />
           </CardContent>
         </Card>
 
