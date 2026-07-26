@@ -42,3 +42,9 @@ export function getDeepSeekChatModel() {
   const model = process.env.DEEPSEEK_MODEL?.trim();
   return model || DEFAULT_DEEPSEEK_MODEL;
 }
+
+/** 图片 OCR 视觉模型（默认与对话模型一致） */
+export function getDeepSeekVisionModel() {
+  const model = process.env.DEEPSEEK_VISION_MODEL?.trim();
+  return model || getDeepSeekChatModel();
+}

@@ -88,7 +88,7 @@ async function handleExtractDocument(request: Request) {
 
 /**
  * POST /api/extract-document
- * 解析上传的 JD / 简历文件（PDF、Word、文本、图片 OpenAI OCR）。
+ * 解析上传的 JD / 简历文件（PDF、Word、文本、图片 DeepSeek OCR）。
  */
 export async function POST(request: Request) {
   try {

@@ -1,5 +1,5 @@
-import { getOpenAIClient } from "@/lib/ai/openai-client";
-import { getOpenAIVisionModel } from "@/lib/ai/openai-env";
+import { getDeepSeekOpenAIClient } from "@/lib/ai/deepseek-openai-client";
+import { getDeepSeekVisionModel } from "@/lib/ai/env";
 import { DocumentParseError } from "@/lib/resume/document-parse-error";
 import {
   logDocumentError,
@@ -20,9 +20,9 @@ function normalizeVisionContent(
 }
 
 /**
- * 通过 OpenAI 多模态接口（gpt-4o-mini）提取图片文字。
+ * 通过 DeepSeek 多模态接口提取图片文字。
  */
-async function extractViaOpenAI(
+async function extractViaDeepSeekVision(
   buffer: Buffer,
   mimeType: string,
 ): Promise<string> {
@@ -30,8 +30,8 @@ async function extractViaOpenAI(
   const dataUrl = `data:${mimeType};base64,${base64}`;
 
   try {
-    const response = await getOpenAIClient().chat.completions.create({
-      model: getOpenAIVisionModel(),
+    const response = await getDeepSeekOpenAIClient().chat.completions.create({
+      model: getDeepSeekVisionModel(),
       messages: [
         {
           role: "user",
@@ -51,7 +51,7 @@ async function extractViaOpenAI(
     const text = normalizeVisionContent(response.choices[0]?.message?.content);
 
     if (!text) {
-      throw new DocumentParseError("OpenAI OCR 未返回可用文本");
+      throw new DocumentParseError("DeepSeek OCR 未返回可用文本");
     }
 
     return text;
@@ -60,16 +60,16 @@ async function extractViaOpenAI(
       throw error;
     }
 
-    logDocumentError("OpenAI OCR request failed", error, {
+    logDocumentError("DeepSeek OCR request failed", error, {
       mimeType,
       bufferSize: buffer.length,
-      model: getOpenAIVisionModel(),
+      model: getDeepSeekVisionModel(),
     });
 
     const message =
       error instanceof Error
         ? error.message
-        : toDocumentErrorMessage(error, "OpenAI OCR 请求失败");
+        : toDocumentErrorMessage(error, "DeepSeek OCR 请求失败");
 
     throw new DocumentParseError(message);
   }
@@ -102,22 +102,22 @@ async function extractViaTesseract(buffer: Buffer): Promise<string> {
 export type ImageExtractionMethod = "vision" | "ocr";
 
 /**
- * 图片文字提取：优先 OpenAI gpt-4o-mini 视觉识图，本地环境失败则回退 Tesseract。
+ * 图片文字提取：优先 DeepSeek 视觉识图，本地环境失败则回退 Tesseract。
  */
 export async function extractImageText(
   buffer: Buffer,
   mimeType: string,
 ): Promise<{ text: string; method: ImageExtractionMethod }> {
   try {
-    const text = await extractViaOpenAI(buffer, mimeType);
+    const text = await extractViaDeepSeekVision(buffer, mimeType);
     return { text, method: "vision" };
-  } catch (openAiError) {
-    logDocumentError("OpenAI OCR failed, falling back to Tesseract", openAiError);
+  } catch (visionError) {
+    logDocumentError("DeepSeek OCR failed, falling back to Tesseract", visionError);
   }
 
   if (isServerlessRuntime()) {
     throw new DocumentParseError(
-      "图片 OCR 暂不可用（请配置 OPENAI_API_KEY 或检查图片格式）",
+      "图片 OCR 暂不可用（请配置 DEEPSEEK_API_KEY 或检查图片格式）",
     );
   }
 
