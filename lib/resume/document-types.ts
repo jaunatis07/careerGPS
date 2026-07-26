@@ -5,7 +5,7 @@ export const MAX_RESUME_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const RESUME_FILE_ACCEPT =
   ".txt,.md,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,image/*";
 
-/** 文档类文件 accept（不含图片，用于「选取文件」） */
+/** 文档类文件 accept（不含图片） */
 export const RESUME_DOCUMENT_ACCEPT =
   ".txt,.md,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown";
 
