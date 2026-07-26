@@ -2,6 +2,7 @@
 
 import { AlertTriangle, ShieldCheck } from "lucide-react";
 
+import { ChatMarkdown } from "@/components/chat/ChatMarkdown";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { CompanyRiskReport } from "@/lib/ai/prompts/resume-system-prompt";
@@ -98,14 +99,14 @@ export function ResumeAnalysisPanel({
             </ul>
           </div>
         ) : (
-          <article className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-            {completion}
+          <div className="relative">
+            <ChatMarkdown content={completion} />
             {isLoading ? (
               <span className="inline-block animate-pulse text-muted-foreground">
                 ▍
               </span>
             ) : null}
-          </article>
+          </div>
         )}
       </ScrollArea>
 

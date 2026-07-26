@@ -5,6 +5,7 @@ import type { UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
 import { useQuota } from "@/components/providers/QuotaProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,11 +138,7 @@ export function ChatBox({
                   : "bg-muted",
               )}
             >
-              {message.parts
-                .filter((part) => part.type === "text")
-                .map((part, index) => (
-                  <span key={`${message.id}-${index}`}>{part.text}</span>
-                ))}
+              <ChatMessageContent role={message.role} parts={message.parts} />
             </div>
           ))}
 

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { createPlannerSession } from "@/app/(dashboard)/planner/actions";
+import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
 import { useQuota } from "@/components/providers/QuotaProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -189,13 +190,7 @@ export function PlannerChat({
               <p className="mb-1 text-[11px] font-medium opacity-70">
                 {message.role === "user" ? "你" : "规划 Agent"}
               </p>
-              <div className="whitespace-pre-wrap">
-                {message.parts
-                  .filter((part) => part.type === "text")
-                  .map((part, index) => (
-                    <span key={`${message.id}-${index}`}>{part.text}</span>
-                  ))}
-              </div>
+              <ChatMessageContent role={message.role} parts={message.parts} />
             </div>
           ))}
 
