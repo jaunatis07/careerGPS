@@ -9,8 +9,8 @@ import {
 } from "@/lib/resume/parse-uploaded-file";
 import { getResumeFormatLabel } from "@/lib/resume/detect-document-format";
 import {
+  formatApiErrorPayload,
   logDocumentError,
-  toDocumentErrorMessage,
 } from "@/lib/resume/log-document-error";
 import { sanitizeResumeTextDetailed } from "@/lib/utils/sanitize";
 import { createClient } from "@/lib/supabase/server";
@@ -103,9 +103,7 @@ export async function POST(request: Request) {
     });
 
     return Response.json(
-      {
-        error: toDocumentErrorMessage(error, "文件解析失败，请稍后重试"),
-      },
+      formatApiErrorPayload(error, "文件解析失败，请稍后重试"),
       { status: 500 },
     );
   }

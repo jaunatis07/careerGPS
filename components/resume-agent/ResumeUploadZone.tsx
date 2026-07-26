@@ -43,8 +43,8 @@ export function ResumeUploadZone({
       const result = await extractDocumentFromFile(file);
       onExtracted(result.text);
       toast.success(result.message);
-    } catch {
-      // fetchJsonWithToast 已展示错误
+    } catch (error) {
+      console.error("[CareerGPS][ResumeUploadZone]", error);
     } finally {
       setIsParsing(false);
       onExtractingChange?.(false);

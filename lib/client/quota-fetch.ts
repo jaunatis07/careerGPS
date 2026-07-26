@@ -1,6 +1,10 @@
 import { toast } from "sonner";
 
-import { parseApiErrorMessage } from "@/lib/client/parse-api-error";
+import {
+  parseApiErrorDetails,
+  parseApiErrorMessage,
+} from "@/lib/client/parse-api-error";
+import { showUploadError } from "@/lib/client/show-upload-error";
 
 interface QuotaAwareFetchHandlers {
   onQuotaExceeded: () => void;
@@ -16,6 +20,10 @@ function resolveFetchUrl(input: RequestInfo | URL) {
   }
 
   return input.url;
+}
+
+function formatHttpErrorToast(message: string) {
+  return message.startsWith("上传失败") ? message : `上传失败: ${message}`;
 }
 
 /**
@@ -37,10 +45,20 @@ export function createQuotaAwareFetch(handlers: QuotaAwareFetchHandlers) {
       }
 
       if (!response.ok) {
-        const message = await parseApiErrorMessage(response);
+        const details = await parseApiErrorDetails(response);
+
+        if (details.stack) {
+          console.error("[CareerGPS][fetch] HTTP error stack", {
+            url,
+            status: details.status,
+            stack: details.stack,
+          });
+        }
+
+        const message = formatHttpErrorToast(details.message);
         console.error("[CareerGPS][fetch] HTTP error", {
           url,
-          status: response.status,
+          status: details.status,
           message,
         });
         toast.error(message);
@@ -49,8 +67,8 @@ export function createQuotaAwareFetch(handlers: QuotaAwareFetchHandlers) {
       return response;
     } catch (error) {
       console.error("[CareerGPS][fetch] network error", { url, error });
-      toast.error("网络开小差了，请稍后重试");
-      throw new Error("网络开小差了，请稍后重试", { cause: error });
+      showUploadError(error, "网络开小差了");
+      throw error;
     }
   };
 }
@@ -62,10 +80,27 @@ export async function fetchJsonWithToast<T>(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(input, init);
+  let response: Response;
+
+  try {
+    response = await fetch(input, init);
+  } catch (error) {
+    showUploadError(error, "网络开小差了");
+    throw error;
+  }
 
   if (!response.ok) {
-    const message = await parseApiErrorMessage(response);
+    const details = await parseApiErrorDetails(response);
+
+    if (details.stack) {
+      console.error("[CareerGPS][fetchJsonWithToast] stack", {
+        url: resolveFetchUrl(input),
+        status: details.status,
+        stack: details.stack,
+      });
+    }
+
+    const message = formatHttpErrorToast(details.message);
     toast.error(message);
     throw new Error(message);
   }

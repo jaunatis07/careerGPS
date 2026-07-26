@@ -1,5 +1,6 @@
 import { prepareUploadFile } from "@/lib/client/prepare-upload-file";
-import { fetchJsonWithToast } from "@/lib/client/quota-fetch";
+import { parseApiErrorDetails } from "@/lib/client/parse-api-error";
+import { showUploadError } from "@/lib/client/show-upload-error";
 import type { ResumeDocumentFormat } from "@/lib/resume/document-types";
 import { toast } from "sonner";
 
@@ -20,22 +21,38 @@ export interface ExtractDocumentResult {
 export async function extractDocumentFromFile(
   file: File,
 ): Promise<ExtractDocumentResult> {
-  let preparedFile: File;
-
   try {
-    preparedFile = await prepareUploadFile(file);
+    const preparedFile = await prepareUploadFile(file);
+    const formData = new FormData();
+    formData.append("file", preparedFile);
+
+    const response = await fetch("/api/extract-document", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const details = await parseApiErrorDetails(response);
+
+      if (details.stack) {
+        console.error("[CareerGPS][extract-document] stack", {
+          status: details.status,
+          stack: details.stack,
+        });
+      }
+
+      const message = `上传失败: ${details.message}`;
+      toast.error(message);
+      throw new Error(message);
+    }
+
+    return (await response.json()) as ExtractDocumentResult;
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "文件无法上传，请稍后重试";
-    toast.error(message);
+    if (error instanceof Error && error.message.startsWith("上传失败:")) {
+      throw error;
+    }
+
+    const message = showUploadError(error);
     throw new Error(message);
   }
-
-  const formData = new FormData();
-  formData.append("file", preparedFile);
-
-  return fetchJsonWithToast<ExtractDocumentResult>("/api/extract-document", {
-    method: "POST",
-    body: formData,
-  });
 }

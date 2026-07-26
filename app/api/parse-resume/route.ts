@@ -5,8 +5,8 @@ import {
   shouldRunCompanyCheck,
 } from "@/lib/resume/company-utils";
 import {
+  formatApiErrorPayload,
   logDocumentError,
-  toDocumentErrorMessage,
 } from "@/lib/resume/log-document-error";
 import { sanitizeResumeTextDetailed } from "@/lib/utils/sanitize";
 
@@ -94,11 +94,8 @@ export async function POST(request: Request) {
   } catch (error) {
     logDocumentError("parse-resume failed", error);
 
-    return Response.json(
-      {
-        error: toDocumentErrorMessage(error, "解析失败，请稍后重试"),
-      },
-      { status: 500 },
-    );
+    return Response.json(formatApiErrorPayload(error, "解析失败，请稍后重试"), {
+      status: 500,
+    });
   }
 }

@@ -67,8 +67,8 @@ export function ResumeInputPanel({
         onResumeChange(result.text);
       }
       toast.success(result.message);
-    } catch {
-      // fetchJsonWithToast 已展示错误
+    } catch (error) {
+      console.error("[CareerGPS][ResumeInputPanel]", error);
     } finally {
       setIsExtracting(false);
     }
