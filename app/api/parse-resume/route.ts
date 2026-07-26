@@ -4,7 +4,14 @@ import {
   extractCompanyName,
   shouldRunCompanyCheck,
 } from "@/lib/resume/company-utils";
+import {
+  logDocumentError,
+  toDocumentErrorMessage,
+} from "@/lib/resume/log-document-error";
 import { sanitizeResumeTextDetailed } from "@/lib/utils/sanitize";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 interface ParseResumeBody {
   jdText?: string;
@@ -23,7 +30,21 @@ export async function POST(request: Request) {
     let resumeText = "";
 
     if (contentType.includes("multipart/form-data")) {
-      const formData = await request.formData();
+      let formData: FormData;
+
+      try {
+        formData = await request.formData();
+      } catch (error) {
+        logDocumentError("parse-resume formData parse failed", error);
+        return Response.json(
+          {
+            error:
+              "上传内容过大或格式无效，请压缩图片到 4MB 以内，或粘贴文本后重试",
+          },
+          { status: 413 },
+        );
+      }
+
       jdText = (formData.get("jdText") as string | null)?.toString() ?? "";
       resumeText =
         (formData.get("resumeText") as string | null)?.toString() ?? "";
@@ -71,10 +92,11 @@ export async function POST(request: Request) {
       needsCompanyCheck: shouldRunCompanyCheck(companyName),
     });
   } catch (error) {
+    logDocumentError("parse-resume failed", error);
+
     return Response.json(
       {
-        error:
-          error instanceof Error ? error.message : "解析失败，请稍后重试",
+        error: toDocumentErrorMessage(error, "解析失败，请稍后重试"),
       },
       { status: 500 },
     );

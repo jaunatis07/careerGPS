@@ -1,5 +1,9 @@
 import { logDeepSeekError } from "@/lib/ai/deepseek-log";
 import { getDeepSeekApiKey, getDeepSeekBaseUrl } from "@/lib/ai/env";
+import {
+  logDocumentError,
+  toDocumentErrorMessage,
+} from "@/lib/resume/log-document-error";
 
 const OCR_PROMPT =
   "请完整、准确地提取图片中的全部文字内容（含中文、英文、数字与标点）。按自然阅读顺序输出纯文本，不要添加解释或 Markdown 格式。";
@@ -45,35 +49,50 @@ async function extractViaVisionApi(
   const dataUrl = `data:${mimeType};base64,${base64}`;
   const url = `${getVisionBaseUrl().replace(/\/+$/, "")}/chat/completions`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getDeepSeekApiKey()}`,
-    },
-    body: JSON.stringify({
-      model: getVisionModel(),
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: OCR_PROMPT },
-            { type: "image_url", image_url: { url: dataUrl } },
-          ],
-        },
-      ],
-      max_tokens: 4096,
-      temperature: 0,
-    }),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getDeepSeekApiKey()}`,
+      },
+      body: JSON.stringify({
+        model: getVisionModel(),
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: OCR_PROMPT },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+        max_tokens: 4096,
+        temperature: 0,
+      }),
+    });
+  } catch (error) {
+    logDocumentError("vision OCR request failed", error, {
+      mimeType,
+      bufferSize: buffer.length,
+    });
+    throw new Error("Vision OCR 网络请求失败");
+  }
 
   const payload = (await response.json()) as VisionOcrResponse;
 
   if (!response.ok) {
-    throw new Error(
+    const message =
       payload.error?.message ??
-        `Vision OCR 请求失败（HTTP ${response.status}）`,
-    );
+      `Vision OCR 请求失败（HTTP ${response.status}）`;
+    logDocumentError("vision OCR HTTP error", new Error(message), {
+      mimeType,
+      bufferSize: buffer.length,
+      status: response.status,
+    });
+    throw new Error(message);
   }
 
   const text = normalizeVisionContent(payload.choices?.[0]?.message?.content);
@@ -86,12 +105,21 @@ async function extractViaVisionApi(
 }
 
 async function extractViaTesseract(buffer: Buffer): Promise<string> {
-  const Tesseract = await import("tesseract.js");
-  const { data } = await Tesseract.recognize(buffer, "chi_sim+eng", {
-    logger: () => {},
-  });
+  try {
+    const Tesseract = await import("tesseract.js");
+    const { data } = await Tesseract.recognize(buffer, "chi_sim+eng", {
+      logger: () => {},
+    });
 
-  return data.text.trim();
+    return data.text.trim();
+  } catch (error) {
+    logDocumentError("tesseract OCR failed", error, {
+      bufferSize: buffer.length,
+    });
+    throw new Error(
+      toDocumentErrorMessage(error, "本地 OCR 引擎启动失败，请粘贴文本后重试"),
+    );
+  }
 }
 
 export type ImageExtractionMethod = "vision" | "ocr";

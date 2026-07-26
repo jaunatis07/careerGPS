@@ -1,6 +1,9 @@
 /** 简历/JD 上传允许的最大文件体积（10MB） */
 export const MAX_RESUME_UPLOAD_BYTES = 10 * 1024 * 1024;
 
+/** 客户端直传上限（Vercel Serverless 请求体约 4.5MB） */
+export const MAX_CLIENT_UPLOAD_BYTES = 4 * 1024 * 1024;
+
 /** 前端 file input accept 属性（含图片） */
 export const RESUME_FILE_ACCEPT =
   ".txt,.md,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,image/*";

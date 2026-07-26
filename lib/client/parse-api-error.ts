@@ -18,6 +18,10 @@ export async function parseApiErrorMessage(
     return QUOTA_EXHAUSTED_MESSAGE;
   }
 
+  if (response.status === 413) {
+    return "上传文件过大，请压缩图片到 4MB 以内或粘贴文本后重试";
+  }
+
   try {
     const data = (await response.clone().json()) as { error?: string };
 

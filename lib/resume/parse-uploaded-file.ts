@@ -8,6 +8,10 @@ import {
 import { extractDocxText } from "@/lib/resume/extract-docx-text";
 import { extractImageText } from "@/lib/resume/extract-image-text";
 import { extractPdfText } from "@/lib/resume/extract-pdf-text";
+import {
+  logDocumentError,
+  toDocumentErrorMessage,
+} from "@/lib/resume/log-document-error";
 
 function assertFileSize(size: number, fileName: string) {
   if (size > MAX_RESUME_UPLOAD_BYTES) {
@@ -27,66 +31,118 @@ function assertFileSize(size: number, fileName: string) {
 export async function parseUploadedResumeDocument(
   file: File,
 ): Promise<ParsedResumeDocument> {
-  assertFileSize(file.size, file.name);
+  const meta = {
+    fileName: file.name,
+    fileSize: file.size,
+    mimeType: file.type,
+  };
 
-  const format = detectResumeDocumentFormat(file);
-  const buffer = Buffer.from(await file.arrayBuffer());
+  try {
+    assertFileSize(file.size, file.name);
 
-  switch (format) {
-    case "txt": {
-      const text = buffer.toString("utf-8").trim();
-      if (!text) {
-        throw new Error("文本文件内容为空");
+    const format = detectResumeDocumentFormat(file);
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    switch (format) {
+      case "txt": {
+        const text = buffer.toString("utf-8").trim();
+        if (!text) {
+          throw new Error("文本文件内容为空");
+        }
+        return {
+          text,
+          format,
+          fileName: file.name,
+          extractionMethod: "text",
+          charCount: text.length,
+        };
       }
-      return {
-        text,
-        format,
-        fileName: file.name,
-        extractionMethod: "text",
-        charCount: text.length,
-      };
-    }
-    case "pdf": {
-      const text = await extractPdfText(buffer);
-      if (!text) {
-        throw new Error("PDF 中未提取到文字，可能是扫描件，请改上传截图或图片");
+      case "pdf": {
+        let text = "";
+
+        try {
+          text = await extractPdfText(buffer);
+        } catch (error) {
+          logDocumentError("pdf extraction failed", error, { ...meta, format });
+          throw new Error(
+            toDocumentErrorMessage(error, "PDF 解析失败，请改上传截图或粘贴文本"),
+          );
+        }
+
+        if (!text) {
+          throw new Error("PDF 中未提取到文字，可能是扫描件，请改上传截图或图片");
+        }
+
+        return {
+          text,
+          format,
+          fileName: file.name,
+          extractionMethod: "pdf",
+          charCount: text.length,
+        };
       }
-      return {
-        text,
-        format,
-        fileName: file.name,
-        extractionMethod: "pdf",
-        charCount: text.length,
-      };
-    }
-    case "docx": {
-      const text = await extractDocxText(buffer);
-      if (!text) {
-        throw new Error("Word 文档中未提取到文字");
+      case "docx": {
+        let text = "";
+
+        try {
+          text = await extractDocxText(buffer);
+        } catch (error) {
+          logDocumentError("docx extraction failed", error, { ...meta, format });
+          throw new Error(
+            toDocumentErrorMessage(error, "Word 文档解析失败，请粘贴文本后重试"),
+          );
+        }
+
+        if (!text) {
+          throw new Error("Word 文档中未提取到文字");
+        }
+
+        return {
+          text,
+          format,
+          fileName: file.name,
+          extractionMethod: "docx",
+          charCount: text.length,
+        };
       }
-      return {
-        text,
-        format,
-        fileName: file.name,
-        extractionMethod: "docx",
-        charCount: text.length,
-      };
+      case "image": {
+        const mimeType = file.type || "image/png";
+        let text = "";
+        let method: ParsedResumeDocument["extractionMethod"] = "ocr";
+
+        try {
+          const result = await extractImageText(buffer, mimeType);
+          text = result.text;
+          method = result.method;
+        } catch (error) {
+          logDocumentError("image extraction failed", error, {
+            ...meta,
+            format,
+          });
+          throw new Error(
+            toDocumentErrorMessage(
+              error,
+              "图片 OCR 失败，请换更清晰的截图或粘贴文本",
+            ),
+          );
+        }
+
+        return {
+          text,
+          format,
+          fileName: file.name,
+          extractionMethod: method,
+          charCount: text.length,
+        };
+      }
+      default:
+        throw new Error(
+          `不支持的文件格式：${file.name}。请上传 PDF、Word (.docx)、文本或图片`,
+        );
     }
-    case "image": {
-      const mimeType = file.type || "image/png";
-      const { text, method } = await extractImageText(buffer, mimeType);
-      return {
-        text,
-        format,
-        fileName: file.name,
-        extractionMethod: method,
-        charCount: text.length,
-      };
-    }
-    default:
-      throw new Error(
-        `不支持的文件格式：${file.name}。请上传 PDF、Word (.docx)、文本或图片`,
-      );
+  } catch (error) {
+    logDocumentError("parse uploaded document failed", error, meta);
+    throw error;
   }
 }
 
