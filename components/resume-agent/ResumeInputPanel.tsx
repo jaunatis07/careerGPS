@@ -1,11 +1,9 @@
 "use client";
 
-import { Upload } from "lucide-react";
-import { useRef } from "react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ResumeUploadZone } from "@/components/resume-agent/ResumeUploadZone";
 import {
   ANALYSIS_MODE_LABELS,
   detectAnalysisMode,
@@ -29,7 +27,7 @@ const textareaClassName = cn(
 );
 
 /**
- * JD / 简历输入区：文本粘贴、.txt 上传与脱敏预览。
+ * JD / 简历输入区：文本粘贴、多格式上传与脱敏预览。
  */
 export function ResumeInputPanel({
   jdText,
@@ -39,9 +37,6 @@ export function ResumeInputPanel({
   onAnalyze,
   isAnalyzing,
 }: ResumeInputPanelProps) {
-  const jdFileRef = useRef<HTMLInputElement>(null);
-  const resumeFileRef = useRef<HTMLInputElement>(null);
-
   const mode = detectAnalysisMode(jdText, resumeText);
   const jdSanitize = jdText ? sanitizeResumeTextDetailed(jdText) : null;
   const resumeSanitize = resumeText
@@ -52,33 +47,13 @@ export function ResumeInputPanel({
     Boolean(jdSanitize?.hasSensitiveData) ||
     Boolean(resumeSanitize?.hasSensitiveData);
 
-  async function handleFileRead(
-    file: File | undefined,
-    onChange: (value: string) => void,
-  ) {
-    if (!file) {
-      return;
-    }
-
-    if (
-      !file.name.endsWith(".txt") &&
-      !file.name.endsWith(".md") &&
-      !["text/plain", "text/markdown"].includes(file.type)
-    ) {
-      alert("暂仅支持 .txt / .md 文本文件，图片 OCR 将在后续版本支持");
-      return;
-    }
-
-    onChange(await file.text());
-  }
-
   return (
     <section className="space-y-4 rounded-xl border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold">上传 / 粘贴内容</h2>
           <p className="text-xs text-muted-foreground">
-            支持单 JD、单简历或 JD+简历 三种分析模式
+            支持 PDF、Word、文本、截图 OCR，或单 JD / 单简历 / JD+简历 三种模式
           </p>
         </div>
         {mode ? (
@@ -96,37 +71,16 @@ export function ResumeInputPanel({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="jd-text">JD 岗位描述</Label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isAnalyzing}
-              onClick={() => jdFileRef.current?.click()}
-            >
-              <Upload className="size-3.5" />
-              上传 .txt
-            </Button>
-            <input
-              ref={jdFileRef}
-              type="file"
-              accept=".txt,.md,text/plain,text/markdown"
-              className="hidden"
-              onChange={(event) =>
-                void handleFileRead(
-                  event.target.files?.[0],
-                  onJdChange,
-                ).finally(() => {
-                  event.target.value = "";
-                })
-              }
-            />
-          </div>
+          <Label htmlFor="jd-text">JD 岗位描述</Label>
+          <ResumeUploadZone
+            label="上传 JD 文件或截图"
+            disabled={isAnalyzing}
+            onExtracted={onJdChange}
+          />
           <textarea
             id="jd-text"
             className={textareaClassName}
-            placeholder="粘贴 JD 全文，或上传文本文件…"
+            placeholder="粘贴 JD 全文，或通过上方上传 PDF / Word / 截图…"
             value={jdText}
             disabled={isAnalyzing}
             onChange={(event) => onJdChange(event.target.value)}
@@ -134,37 +88,16 @@ export function ResumeInputPanel({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="resume-text">简历内容</Label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isAnalyzing}
-              onClick={() => resumeFileRef.current?.click()}
-            >
-              <Upload className="size-3.5" />
-              上传 .txt
-            </Button>
-            <input
-              ref={resumeFileRef}
-              type="file"
-              accept=".txt,.md,text/plain,text/markdown"
-              className="hidden"
-              onChange={(event) =>
-                void handleFileRead(
-                  event.target.files?.[0],
-                  onResumeChange,
-                ).finally(() => {
-                  event.target.value = "";
-                })
-              }
-            />
-          </div>
+          <Label htmlFor="resume-text">简历内容</Label>
+          <ResumeUploadZone
+            label="上传简历文件或截图"
+            disabled={isAnalyzing}
+            onExtracted={onResumeChange}
+          />
           <textarea
             id="resume-text"
             className={textareaClassName}
-            placeholder="粘贴简历全文，或上传文本文件…"
+            placeholder="粘贴简历全文，或通过上方上传 PDF / Word / 截图…"
             value={resumeText}
             disabled={isAnalyzing}
             onChange={(event) => onResumeChange(event.target.value)}

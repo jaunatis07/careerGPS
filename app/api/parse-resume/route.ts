@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
-
+import { parseUploadedResumeDocument } from "@/lib/resume/parse-uploaded-file";
+import { detectAnalysisMode } from "@/lib/resume/detect-analysis-mode";
 import {
   extractCompanyName,
   shouldRunCompanyCheck,
 } from "@/lib/resume/company-utils";
-import { detectAnalysisMode } from "@/lib/resume/detect-analysis-mode";
 import { sanitizeResumeTextDetailed } from "@/lib/utils/sanitize";
 
 interface ParseResumeBody {
@@ -33,11 +32,11 @@ export async function POST(request: Request) {
       const resumeFile = formData.get("resumeFile");
 
       if (jdFile instanceof File && jdFile.size > 0) {
-        jdText = await readUploadableFile(jdFile);
+        jdText = (await parseUploadedResumeDocument(jdFile)).text;
       }
 
       if (resumeFile instanceof File && resumeFile.size > 0) {
-        resumeText = await readUploadableFile(resumeFile);
+        resumeText = (await parseUploadedResumeDocument(resumeFile)).text;
       }
     } else {
       const body = (await request.json()) as ParseResumeBody;
@@ -48,7 +47,7 @@ export async function POST(request: Request) {
     const mode = detectAnalysisMode(jdText, resumeText);
 
     if (!mode) {
-      return NextResponse.json(
+      return Response.json(
         { error: "请至少提供 JD 或简历其中一项内容" },
         { status: 400 },
       );
@@ -61,7 +60,7 @@ export async function POST(request: Request) {
 
     const companyName = jdText ? extractCompanyName(jdText) : null;
 
-    return NextResponse.json({
+    return Response.json({
       mode,
       sanitizedJd: sanitizedJd?.text ?? "",
       sanitizedResume: sanitizedResume?.text ?? "",
@@ -72,7 +71,7 @@ export async function POST(request: Request) {
       needsCompanyCheck: shouldRunCompanyCheck(companyName),
     });
   } catch (error) {
-    return NextResponse.json(
+    return Response.json(
       {
         error:
           error instanceof Error ? error.message : "解析失败，请稍后重试",
@@ -80,24 +79,4 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-}
-
-async function readUploadableFile(file: File): Promise<string> {
-  const allowedTypes = [
-    "text/plain",
-    "text/markdown",
-    "application/json",
-  ];
-
-  if (
-    !allowedTypes.includes(file.type) &&
-    !file.name.endsWith(".txt") &&
-    !file.name.endsWith(".md")
-  ) {
-    throw new Error(
-      `暂不支持 ${file.name} 格式，请粘贴文本或上传 .txt / .md 文件（图片 OCR 将在后续版本支持）`,
-    );
-  }
-
-  return file.text();
 }
