@@ -26,7 +26,7 @@ interface AIRequestBody {
   prompt?: string;
   /** OpenAI 兼容 messages 数组 */
   messages?: DeepSeekMessage[];
-  /** 可选模型名（默认 deepseek-chat） */
+  /** 可选模型名（默认 deepseek-v4-flash） */
   model?: string;
 }
 

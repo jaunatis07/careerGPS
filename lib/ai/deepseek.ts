@@ -8,7 +8,7 @@ import {
 
 /**
  * 创建 DeepSeek 模型 Provider 实例。
- * Base URL 与模型名见 lib/ai/env.ts（默认 api.deepseek.com + deepseek-chat）。
+ * Base URL 与模型名见 lib/ai/env.ts（默认 api.deepseek.com + deepseek-v4-flash）。
  */
 export function createDeepSeekProvider() {
   return createDeepSeek({

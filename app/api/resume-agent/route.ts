@@ -2,6 +2,7 @@ import {
   buildResumeAnalysisSystemPrompt,
   buildResumeAnalysisUserPrompt,
 } from "@/lib/ai/prompts/resume-system-prompt";
+import { logDeepSeekError } from "@/lib/ai/deepseek-log";
 import { streamDeepSeekText } from "@/lib/ai/deepseek-request";
 import { checkCompanyRisk } from "@/lib/resume/company-check";
 import {
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 429 });
     }
 
-    console.error("[CareerGPS] Resume agent API error:", error);
+    logDeepSeekError("POST /api/resume-agent failed", error);
 
     return Response.json(
       {

@@ -4,7 +4,7 @@ import {
 } from "ai";
 
 import { getUserChatContext } from "@/lib/ai/get-user-chat-context";
-import { formatDeepSeekClientError, logDeepSeekError } from "@/lib/ai/deepseek-log";
+import { formatDeepSeekClientError, createDeepSeekStreamOnError, logDeepSeekError } from "@/lib/ai/deepseek-log";
 import { streamDeepSeekText } from "@/lib/ai/deepseek-request";
 import {
   buildSystemPrompt,
@@ -108,6 +108,7 @@ export async function POST(request: Request) {
       headers: {
         "X-Chat-Session-Id": session.id,
       },
+      onError: createDeepSeekStreamOnError("POST /api/chat stream"),
     });
   } catch (error) {
     if (error instanceof QuotaExceededError) {

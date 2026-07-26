@@ -1,5 +1,6 @@
 const OFFICIAL_DEEPSEEK_BASE_URL = "https://api.deepseek.com";
-const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
+/** deepseek-chat 已于 2026-07-24 弃用，官方后继模型为 deepseek-v4-flash */
+const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
 
 /** DeepSeek API Key，仅服务端使用 */
 export function getDeepSeekApiKey() {
@@ -36,7 +37,7 @@ export function getDeepSeekChatCompletionsUrl() {
   return `${getDeepSeekBaseUrl()}/chat/completions`;
 }
 
-/** 默认对话模型（官方：deepseek-chat） */
+/** 默认对话模型（官方推荐：deepseek-v4-flash；旧版 deepseek-chat 已弃用） */
 export function getDeepSeekChatModel() {
   const model = process.env.DEEPSEEK_MODEL?.trim();
   return model || DEFAULT_DEEPSEEK_MODEL;

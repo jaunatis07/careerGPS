@@ -124,3 +124,14 @@ export function formatDeepSeekClientError(error: unknown): string {
 
   return "DeepSeek 请求失败，请稍后重试";
 }
+
+/**
+ * AI SDK 流式响应默认会把错误替换成 "An error occurred."；
+ * 用于 toUIMessageStreamResponse / toTextStreamResponse 的 onError，记录日志并返回可读信息。
+ */
+export function createDeepSeekStreamOnError(context: string) {
+  return (error: unknown) => {
+    logDeepSeekError(context, error);
+    return formatDeepSeekClientError(error);
+  };
+}
