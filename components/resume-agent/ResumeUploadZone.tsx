@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, ChevronDown, FolderOpen, Images, Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { extractDocumentFromFile } from "@/lib/client/extract-document";
-import {
-  RESUME_DOCUMENT_ACCEPT,
-} from "@/lib/resume/document-types";
+import { RESUME_DOCUMENT_ACCEPT } from "@/lib/resume/document-types";
+import { cn } from "@/lib/utils";
 
 interface ResumeUploadZoneProps {
   label: string;
@@ -22,6 +21,11 @@ interface ResumeUploadZoneProps {
   onExtracted: (text: string) => void;
   onExtractingChange?: (isExtracting: boolean) => void;
 }
+
+const menuLabelClassName = cn(
+  "flex w-full cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-hidden",
+  "focus-visible:bg-accent focus-visible:text-accent-foreground",
+);
 
 /**
  * 简历/JD 上传按钮：下拉选择相册、拍照或文件。
@@ -32,13 +36,12 @@ export function ResumeUploadZone({
   onExtracted,
   onExtractingChange,
 }: ResumeUploadZoneProps) {
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isParsing, setIsParsing] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
-  async function handleFile(file: File | undefined) {
+  async function handleFile(
+    file: File | undefined,
+    input: HTMLInputElement,
+  ) {
     if (!file || disabled || isParsing) {
       return;
     }
@@ -55,98 +58,75 @@ export function ResumeUploadZone({
     } finally {
       setIsParsing(false);
       onExtractingChange?.(false);
-    }
-  }
-
-  function resetInput(input: HTMLInputElement | null) {
-    if (input) {
       input.value = "";
     }
   }
 
-  return (
-    <>
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        disabled={disabled || isParsing}
-        onChange={(event) =>
-          void handleFile(event.target.files?.[0]).finally(() => {
-            resetInput(event.target);
-          })
-        }
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        disabled={disabled || isParsing}
-        onChange={(event) =>
-          void handleFile(event.target.files?.[0]).finally(() => {
-            resetInput(event.target);
-          })
-        }
-      />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={RESUME_DOCUMENT_ACCEPT}
-        className="hidden"
-        disabled={disabled || isParsing}
-        onChange={(event) =>
-          void handleFile(event.target.files?.[0]).finally(() => {
-            resetInput(event.target);
-          })
-        }
-      />
+  function createFileInputChangeHandler() {
+    return (event: React.ChangeEvent<HTMLInputElement>) => {
+      void handleFile(event.target.files?.[0], event.currentTarget);
+    };
+  }
 
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        <DropdownMenuTrigger
-          disabled={disabled || isParsing}
-          render={
-            <Button type="button" variant="outline" size="sm" className="shrink-0" />
-          }
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        disabled={disabled || isParsing}
+        render={
+          <Button type="button" variant="outline" size="sm" className="shrink-0" />
+        }
+      >
+        {isParsing ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : null}
+        {isParsing ? "解析中…" : label}
+        {!isParsing ? <ChevronDown className="size-3.5 opacity-60" /> : null}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem
+          className="p-0"
+          render={<label className={menuLabelClassName} />}
         >
-          {isParsing ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : null}
-          {isParsing ? "解析中…" : label}
-          {!isParsing ? <ChevronDown className="size-3.5 opacity-60" /> : null}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem
-            onClick={() => {
-              setMenuOpen(false);
-              galleryInputRef.current?.click();
-            }}
-          >
-            <Images className="size-4" />
-            照片图库
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              setMenuOpen(false);
-              cameraInputRef.current?.click();
-            }}
-          >
-            <Camera className="size-4" />
-            拍照
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              setMenuOpen(false);
-              fileInputRef.current?.click();
-            }}
-          >
-            <FolderOpen className="size-4" />
-            选取文件
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </>
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={disabled || isParsing}
+            onChange={createFileInputChangeHandler()}
+          />
+          <Images className="size-4" />
+          照片图库
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="p-0"
+          render={<label className={menuLabelClassName} />}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            disabled={disabled || isParsing}
+            onChange={createFileInputChangeHandler()}
+          />
+          <Camera className="size-4" />
+          拍照
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="p-0"
+          render={<label className={menuLabelClassName} />}
+        >
+          <input
+            type="file"
+            accept={RESUME_DOCUMENT_ACCEPT}
+            className="sr-only"
+            disabled={disabled || isParsing}
+            onChange={createFileInputChangeHandler()}
+          />
+          <FolderOpen className="size-4" />
+          选取文件
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
