@@ -1,26 +1,23 @@
-import { PDFParse } from "pdf-parse";
-
+import { toDocumentParseError } from "@/lib/resume/document-parse-error";
 import { logDocumentError } from "@/lib/resume/log-document-error";
 
 /**
- * 从 PDF Buffer 提取纯文本。
+ * 从 PDF Buffer 提取纯文本（unpdf，适配 Vercel Serverless）。
  */
 export async function extractPdfText(buffer: Buffer): Promise<string> {
-  const parser = new PDFParse({ data: buffer });
-
   try {
-    const result = await parser.getText();
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const result = await extractText(pdf, { mergePages: true });
     return result.text.trim();
   } catch (error) {
-    logDocumentError("pdf-parse getText failed", error, {
+    logDocumentError("unpdf extract failed", error, {
       bufferSize: buffer.length,
     });
-    throw error;
-  } finally {
-    try {
-      await parser.destroy();
-    } catch (destroyError) {
-      logDocumentError("pdf-parse destroy failed", destroyError);
-    }
+
+    throw toDocumentParseError(
+      error,
+      "PDF 解析失败，可能是扫描件或文件已损坏",
+    );
   }
 }

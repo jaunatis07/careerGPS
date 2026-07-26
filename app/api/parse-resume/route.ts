@@ -1,17 +1,16 @@
-import { parseUploadedResumeDocument } from "@/lib/resume/parse-uploaded-file";
+import { jsonApiError } from "@/lib/api/json-api-error";
 import { detectAnalysisMode } from "@/lib/resume/detect-analysis-mode";
 import {
   extractCompanyName,
   shouldRunCompanyCheck,
 } from "@/lib/resume/company-utils";
-import {
-  formatApiErrorPayload,
-  logDocumentError,
-} from "@/lib/resume/log-document-error";
+import { isDocumentParseError } from "@/lib/resume/document-parse-error";
+import { logDocumentError } from "@/lib/resume/log-document-error";
 import { sanitizeResumeTextDetailed } from "@/lib/utils/sanitize";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 interface ParseResumeBody {
   jdText?: string;
@@ -36,12 +35,10 @@ export async function POST(request: Request) {
         formData = await request.formData();
       } catch (error) {
         logDocumentError("parse-resume formData parse failed", error);
-        return Response.json(
-          {
-            error:
-              "上传内容过大或格式无效，请压缩图片到 4MB 以内，或粘贴文本后重试",
-          },
-          { status: 413 },
+        return jsonApiError(
+          new Error("上传内容过大或格式无效，请压缩图片到 4MB 以内，或粘贴文本后重试"),
+          "上传内容过大或格式无效，请压缩图片到 4MB 以内，或粘贴文本后重试",
+          413,
         );
       }
 
@@ -51,6 +48,9 @@ export async function POST(request: Request) {
 
       const jdFile = formData.get("jdFile");
       const resumeFile = formData.get("resumeFile");
+      const { parseUploadedResumeDocument } = await import(
+        "@/lib/resume/parse-uploaded-file"
+      );
 
       if (jdFile instanceof File && jdFile.size > 0) {
         jdText = (await parseUploadedResumeDocument(jdFile)).text;
@@ -68,9 +68,10 @@ export async function POST(request: Request) {
     const mode = detectAnalysisMode(jdText, resumeText);
 
     if (!mode) {
-      return Response.json(
-        { error: "请至少提供 JD 或简历其中一项内容" },
-        { status: 400 },
+      return jsonApiError(
+        new Error("请至少提供 JD 或简历其中一项内容"),
+        "请至少提供 JD 或简历其中一项内容",
+        400,
       );
     }
 
@@ -92,10 +93,17 @@ export async function POST(request: Request) {
       needsCompanyCheck: shouldRunCompanyCheck(companyName),
     });
   } catch (error) {
+    if (isDocumentParseError(error)) {
+      logDocumentError("parse-resume document parse failed", error);
+      return jsonApiError(error, error.toApiMessage(), 422);
+    }
+
     logDocumentError("parse-resume failed", error);
 
-    return Response.json(formatApiErrorPayload(error, "解析失败，请稍后重试"), {
-      status: 500,
-    });
+    return jsonApiError(
+      error,
+      "解析失败，请直接粘贴文本到输入框后继续分析",
+      422,
+    );
   }
 }

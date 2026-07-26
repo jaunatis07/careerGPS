@@ -1,5 +1,6 @@
 import { logDeepSeekError } from "@/lib/ai/deepseek-log";
 import { getDeepSeekApiKey, getDeepSeekBaseUrl } from "@/lib/ai/env";
+import { DocumentParseError } from "@/lib/resume/document-parse-error";
 import {
   logDocumentError,
   toDocumentErrorMessage,
@@ -13,6 +14,10 @@ interface VisionOcrResponse {
     message?: { content?: string | Array<{ type?: string; text?: string }> };
   }>;
   error?: { message?: string };
+}
+
+function isServerlessRuntime() {
+  return Boolean(process.env.VERCEL);
 }
 
 function getVisionModel() {
@@ -78,7 +83,7 @@ async function extractViaVisionApi(
       mimeType,
       bufferSize: buffer.length,
     });
-    throw new Error("Vision OCR 网络请求失败");
+    throw new DocumentParseError("Vision OCR 网络请求失败");
   }
 
   const payload = (await response.json()) as VisionOcrResponse;
@@ -92,19 +97,25 @@ async function extractViaVisionApi(
       bufferSize: buffer.length,
       status: response.status,
     });
-    throw new Error(message);
+    throw new DocumentParseError(message);
   }
 
   const text = normalizeVisionContent(payload.choices?.[0]?.message?.content);
 
   if (!text) {
-    throw new Error("Vision OCR 未返回可用文本");
+    throw new DocumentParseError("Vision OCR 未返回可用文本");
   }
 
   return text;
 }
 
 async function extractViaTesseract(buffer: Buffer): Promise<string> {
+  if (isServerlessRuntime()) {
+    throw new DocumentParseError(
+      "Serverless 环境不支持本地 OCR 引擎",
+    );
+  }
+
   try {
     const Tesseract = await import("tesseract.js");
     const { data } = await Tesseract.recognize(buffer, "chi_sim+eng", {
@@ -116,8 +127,8 @@ async function extractViaTesseract(buffer: Buffer): Promise<string> {
     logDocumentError("tesseract OCR failed", error, {
       bufferSize: buffer.length,
     });
-    throw new Error(
-      toDocumentErrorMessage(error, "本地 OCR 引擎启动失败，请粘贴文本后重试"),
+    throw new DocumentParseError(
+      toDocumentErrorMessage(error, "本地 OCR 引擎启动失败"),
     );
   }
 }
@@ -125,7 +136,7 @@ async function extractViaTesseract(buffer: Buffer): Promise<string> {
 export type ImageExtractionMethod = "vision" | "ocr";
 
 /**
- * 图片文字提取：优先 Vision API，失败则回退 Tesseract OCR。
+ * 图片文字提取：优先 Vision API，本地环境失败则回退 Tesseract。
  */
 export async function extractImageText(
   buffer: Buffer,
@@ -138,10 +149,16 @@ export async function extractImageText(
     logDeepSeekError("Vision OCR failed, falling back to Tesseract", visionError);
   }
 
+  if (isServerlessRuntime()) {
+    throw new DocumentParseError(
+      "图片 OCR 暂不可用（Vision 未配置或不支持当前图片）",
+    );
+  }
+
   const text = await extractViaTesseract(buffer);
 
   if (!text) {
-    throw new Error("图片 OCR 未能识别出文字，请尝试更清晰的截图或粘贴文本");
+    throw new DocumentParseError("图片 OCR 未能识别出文字");
   }
 
   return { text, method: "ocr" };
