@@ -1,31 +1,42 @@
 "use client";
 
-import { FileUp, ImagePlus, Loader2 } from "lucide-react";
+import { Camera, ChevronDown, FolderOpen, Images, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { extractDocumentFromFile } from "@/lib/client/extract-document";
-import { RESUME_FILE_ACCEPT } from "@/lib/resume/document-types";
-import { cn } from "@/lib/utils";
+import {
+  RESUME_DOCUMENT_ACCEPT,
+} from "@/lib/resume/document-types";
 
 interface ResumeUploadZoneProps {
   label: string;
   disabled?: boolean;
   onExtracted: (text: string) => void;
+  onExtractingChange?: (isExtracting: boolean) => void;
 }
 
 /**
- * 简历/JD 上传区：点击选文件、拖拽、粘贴图片。
+ * 简历/JD 上传按钮：下拉选择相册、拍照或文件。
  */
 export function ResumeUploadZone({
   label,
   disabled = false,
   onExtracted,
+  onExtractingChange,
 }: ResumeUploadZoneProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleFile(file: File | undefined) {
     if (!file || disabled || isParsing) {
@@ -33,6 +44,7 @@ export function ResumeUploadZone({
     }
 
     setIsParsing(true);
+    onExtractingChange?.(true);
 
     try {
       const result = await extractDocumentFromFile(file);
@@ -42,121 +54,99 @@ export function ResumeUploadZone({
       // fetchJsonWithToast 已展示错误
     } finally {
       setIsParsing(false);
+      onExtractingChange?.(false);
     }
   }
 
-  function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
-    if (disabled || isParsing) {
-      return;
-    }
-
-    const items = event.clipboardData?.items;
-
-    if (!items) {
-      return;
-    }
-
-    for (const item of items) {
-      if (item.type.startsWith("image/")) {
-        event.preventDefault();
-        const file = item.getAsFile();
-
-        if (file) {
-          void handleFile(
-            new File([file], file.name || "clipboard-image.png", {
-              type: file.type,
-            }),
-          );
-        }
-
-        return;
-      }
+  function resetInput(input: HTMLInputElement | null) {
+    if (input) {
+      input.value = "";
     }
   }
 
   return (
-    <div
-      tabIndex={0}
-      onPaste={handlePaste}
-      onDragEnter={(event) => {
-        event.preventDefault();
-        if (!disabled && !isParsing) {
-          setIsDragging(true);
-        }
-      }}
-      onDragOver={(event) => {
-        event.preventDefault();
-      }}
-      onDragLeave={(event) => {
-        event.preventDefault();
-        setIsDragging(false);
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        setIsDragging(false);
-
-        if (disabled || isParsing) {
-          return;
-        }
-
-        void handleFile(event.dataTransfer.files?.[0]);
-      }}
-      className={cn(
-        "rounded-lg border border-dashed p-3 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-        isDragging
-          ? "border-primary bg-primary/5"
-          : "border-border/80 bg-muted/20",
-        disabled && "pointer-events-none opacity-50",
-      )}
-    >
+    <>
       <input
-        ref={inputRef}
+        ref={galleryInputRef}
         type="file"
-        accept={RESUME_FILE_ACCEPT}
+        accept="image/*"
         className="hidden"
         disabled={disabled || isParsing}
         onChange={(event) =>
           void handleFile(event.target.files?.[0]).finally(() => {
-            event.target.value = "";
+            resetInput(event.target);
+          })
+        }
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        disabled={disabled || isParsing}
+        onChange={(event) =>
+          void handleFile(event.target.files?.[0]).finally(() => {
+            resetInput(event.target);
+          })
+        }
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={RESUME_DOCUMENT_ACCEPT}
+        className="hidden"
+        disabled={disabled || isParsing}
+        onChange={(event) =>
+          void handleFile(event.target.files?.[0]).finally(() => {
+            resetInput(event.target);
           })
         }
       />
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-medium">{label}</p>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
-            支持 PDF、Word (.docx)、.txt、JD/简历截图；可拖拽或 Ctrl+V 粘贴图片
-          </p>
-        </div>
-
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={disabled || isParsing}
-            onClick={() => inputRef.current?.click()}
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenuTrigger
+          disabled={disabled || isParsing}
+          render={
+            <Button type="button" variant="outline" size="sm" className="shrink-0" />
+          }
+        >
+          {isParsing ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : null}
+          {isParsing ? "解析中…" : label}
+          {!isParsing ? <ChevronDown className="size-3.5 opacity-60" /> : null}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem
+            onClick={() => {
+              setMenuOpen(false);
+              galleryInputRef.current?.click();
+            }}
           >
-            {isParsing ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <FileUp className="size-3.5" />
-            )}
-            {isParsing ? "解析中…" : "选择文件"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={disabled || isParsing}
-            onClick={() => inputRef.current?.click()}
+            <Images className="size-4" />
+            照片图库
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setMenuOpen(false);
+              cameraInputRef.current?.click();
+            }}
           >
-            <ImagePlus className="size-3.5" />
-            相册/图片
-          </Button>
-        </div>
-      </div>
-    </div>
+            <Camera className="size-4" />
+            拍照
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setMenuOpen(false);
+              fileInputRef.current?.click();
+            }}
+          >
+            <FolderOpen className="size-4" />
+            选取文件
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }
