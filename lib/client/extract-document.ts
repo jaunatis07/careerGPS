@@ -1,3 +1,4 @@
+import { cleanOcrTextWithDeepSeek } from "@/lib/client/clean-ocr-text";
 import { extractImageTextOnClient } from "@/lib/client/extract-image-text";
 import { prepareUploadFile } from "@/lib/client/prepare-upload-file";
 import { parseApiErrorDetails } from "@/lib/client/parse-api-error";
@@ -52,15 +53,30 @@ async function extractImageDocumentOnClient(file: File): Promise<ExtractDocument
       });
     });
 
-    const sanitized = sanitizeResumeTextDetailed(rawText);
+    toast.loading("正在优化文本排版…", { id: progressToastId });
+
+    let finalText = rawText;
+
+    try {
+      finalText = await cleanOcrTextWithDeepSeek(rawText);
+    } catch (error) {
+      console.warn("[CareerGPS][OCR cleanup]", error);
+      toast.warning("AI 文本清洗失败，已使用原始识别结果");
+      finalText = rawText;
+    }
+
+    const sanitized = sanitizeResumeTextDetailed(finalText);
     toast.dismiss(progressToastId);
 
-    return buildExtractResult(
-      preparedFile.name,
-      "image",
-      "ocr",
-      sanitized,
-    );
+    return {
+      ...buildExtractResult(
+        preparedFile.name,
+        "image",
+        "ocr",
+        sanitized,
+      ),
+      message: `已从图片「${preparedFile.name}」识别并清洗 ${sanitized.text.length} 字`,
+    };
   } catch (error) {
     toast.dismiss(progressToastId);
     throw error;
