@@ -9,6 +9,7 @@ import {
   ANALYSIS_MODE_LABELS,
   type ResumeAnalysisMode,
 } from "@/lib/resume/detect-analysis-mode";
+import { CHAT_MESSAGE_SCROLL_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
 
 interface ResumeAnalysisPanelProps {
@@ -85,7 +86,7 @@ export function ResumeAnalysisPanel({
         </div>
       ) : null}
 
-      <ScrollArea className="flex-1 px-4 py-4">
+      <ScrollArea className={CHAT_MESSAGE_SCROLL_CLASS}>
         {!hasOutput ? (
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>AI 将按以下结构流式输出报告：</p>

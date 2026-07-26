@@ -17,7 +17,7 @@ import {
   submitChatMessage,
 } from "@/lib/client/chat-transport";
 import { PLANNER_QUICK_PROMPTS } from "@/lib/ai/prompts/planner-system-prompt";
-import { CHAT_FORM_CLASS, CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
+import { CHAT_FORM_CLASS, CHAT_MESSAGE_SCROLL_CLASS, CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
 
 interface PlannerChatProps {
@@ -114,7 +114,7 @@ export function PlannerChat({
   return (
     <section
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl border bg-card",
+        "flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card",
         CHAT_PANEL_HEIGHT_CLASS,
       )}
     >
@@ -150,7 +150,7 @@ export function PlannerChat({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-4 py-4">
+      <ScrollArea className={CHAT_MESSAGE_SCROLL_CLASS}>
         <div className="space-y-4">
           {messages.length === 0 ? (
             <div className="space-y-3">

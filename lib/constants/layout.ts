@@ -2,6 +2,10 @@
 export const CHAT_PANEL_HEIGHT_CLASS =
   "h-[min(calc(100dvh-11rem),720px)] sm:h-[min(75vh,720px)]";
 
+/** 聊天消息滚动区：flex 子项须 min-h-0，否则 overflow 会被锁死 */
+export const CHAT_MESSAGE_SCROLL_CLASS =
+  "min-h-0 flex-1 overflow-hidden px-4 py-4";
+
 /** 聊天输入区：移动端纵向堆叠，桌面端横向排列 */
 export const CHAT_FORM_CLASS =
   "flex flex-col gap-2 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:p-4";

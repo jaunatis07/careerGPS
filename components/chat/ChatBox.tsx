@@ -14,7 +14,7 @@ import {
   submitChatMessage,
 } from "@/lib/client/chat-transport";
 import type { AgentType } from "@/lib/ai/system-prompts";
-import { CHAT_FORM_CLASS, CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
+import { CHAT_FORM_CLASS, CHAT_MESSAGE_SCROLL_CLASS, CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
 
 interface ChatBoxProps {
@@ -100,7 +100,7 @@ export function ChatBox({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl border bg-card",
+        "flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card",
         CHAT_PANEL_HEIGHT_CLASS,
         className,
       )}
@@ -119,7 +119,7 @@ export function ChatBox({
         ) : null}
       </div>
 
-      <ScrollArea className="flex-1 px-4 py-4">
+      <ScrollArea className={CHAT_MESSAGE_SCROLL_CLASS}>
         <div className="space-y-4">
           {messages.length === 0 ? (
             <p className="text-sm text-muted-foreground">

@@ -25,7 +25,7 @@ export function PlannerExperience({
       <div className="order-2 lg:order-1">
         <PlannerProfilePanel profile={profile} />
       </div>
-      <div className="order-1 min-w-0 lg:order-2">
+      <div className="order-1 flex min-h-0 min-w-0 flex-col lg:order-2">
         <PlannerChat
           key={initialSessionId ?? "new-session"}
           initialSessionId={initialSessionId}
