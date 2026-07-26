@@ -103,8 +103,9 @@ export function Navbar({ email, quota }: NavbarProps) {
             <Link
               href="/profile"
               aria-label="个人主页"
+              title="个人主页"
               className={cn(
-                "rounded-full ring-offset-background transition-opacity hover:opacity-80",
+                "inline-flex shrink-0 cursor-pointer rounded-full ring-offset-background transition-opacity hover:opacity-80",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 (pathname === "/profile" || pathname.startsWith("/profile/")) &&
                   "ring-2 ring-primary ring-offset-2",
@@ -197,18 +198,6 @@ export function Navbar({ email, quota }: NavbarProps) {
                       </Link>
                     );
                   })}
-                  <Link
-                    href="/profile"
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      pathname === "/profile" || pathname.startsWith("/profile/")
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    个人主页
-                  </Link>
                 </nav>
               </div>
             </SheetContent>
