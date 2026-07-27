@@ -1,4 +1,3 @@
-import { cleanOcrTextWithDeepSeek } from "@/lib/client/clean-ocr-text";
 import { extractImageTextOnClient } from "@/lib/client/extract-image-text";
 import { prepareUploadFile } from "@/lib/client/prepare-upload-file";
 import { parseApiErrorDetails } from "@/lib/client/parse-api-error";
@@ -8,6 +7,7 @@ import {
   getResumeFormatLabel,
 } from "@/lib/resume/detect-document-format";
 import type { ResumeDocumentFormat } from "@/lib/resume/document-types";
+import { compactOcrText } from "@/lib/utils/compact-ocr-text";
 import { sanitizeResumeTextDetailed } from "@/lib/utils/sanitize";
 import { toast } from "sonner";
 
@@ -53,19 +53,8 @@ async function extractImageDocumentOnClient(file: File): Promise<ExtractDocument
       });
     });
 
-    toast.loading("正在优化文本排版…", { id: progressToastId });
-
-    let finalText = rawText;
-
-    try {
-      finalText = await cleanOcrTextWithDeepSeek(rawText);
-    } catch (error) {
-      console.warn("[CareerGPS][OCR cleanup]", error);
-      toast.warning("AI 文本清洗失败，已使用原始识别结果");
-      finalText = rawText;
-    }
-
-    const sanitized = sanitizeResumeTextDetailed(finalText);
+    const compactedText = compactOcrText(rawText);
+    const sanitized = sanitizeResumeTextDetailed(compactedText);
     toast.dismiss(progressToastId);
 
     return {
@@ -75,7 +64,7 @@ async function extractImageDocumentOnClient(file: File): Promise<ExtractDocument
         "ocr",
         sanitized,
       ),
-      message: `已从图片「${preparedFile.name}」识别并清洗 ${sanitized.text.length} 字`,
+      message: `已从图片「${preparedFile.name}」识别 ${sanitized.text.length} 字`,
     };
   } catch (error) {
     toast.dismiss(progressToastId);
