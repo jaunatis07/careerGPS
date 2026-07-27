@@ -14,6 +14,8 @@ export type IntensityLevel = "低" | "中" | "高" | "极高";
 export interface CareerNode {
   id: string;
   label: string;
+  /** 节点层级语义：industry 宏观行业 / function 职能方向 / role 末端岗位 */
+  kind?: "industry" | "function" | "role";
   children?: CareerNode[];
 }
 

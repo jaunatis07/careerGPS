@@ -6,7 +6,10 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MINDMAP_TREE_SCROLL_CLASS } from "@/lib/constants/layout";
 import { cn } from "@/lib/utils";
-import { isCareerLeaf } from "@/lib/constants/career-tree";
+import {
+  getDefaultExpandedIds,
+  isCareerLeaf,
+} from "@/lib/constants/career-tree";
 import type { CareerNode } from "@/types";
 
 interface CareerTreeNodeProps {
@@ -32,6 +35,8 @@ export function CareerTreeNode({
   const isLeaf = isCareerLeaf(node);
   const isExpanded = expandedIds.has(node.id);
   const isSelected = isLeaf && selectedJob === node.label;
+  const isIndustry = node.kind === "industry";
+  const isFunction = node.kind === "function";
 
   if (isLeaf) {
     return (
@@ -55,7 +60,9 @@ export function CareerTreeNode({
         type="button"
         className={cn(
           "flex w-full min-h-11 items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted sm:min-h-0 sm:py-2",
-          depth === 0 && "text-base",
+          depth === 0 && "text-base font-semibold",
+          isIndustry && "bg-muted/40",
+          isFunction && "text-muted-foreground",
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => onToggle(node.id)}
@@ -102,7 +109,7 @@ export function CareerMindmap({
   selectedJob,
 }: CareerMindmapProps) {
   const defaultExpandedIds = useMemo(
-    () => new Set(tree.map((node) => node.id)),
+    () => new Set(getDefaultExpandedIds(tree)),
     [tree],
   );
   const [expandedIds, setExpandedIds] =
@@ -128,7 +135,7 @@ export function CareerMindmap({
         <p className="text-xs text-muted-foreground sm:text-sm">
           <span className="sm:hidden">点击岗位查看 AI 透视</span>
           <span className="hidden sm:inline">
-            点击分类展开/折叠，点击末端岗位查看 AI 透视卡片
+            按「行业 → 职能 → 岗位」浏览，点击末端岗位查看 AI 透视卡片
           </span>
         </p>
         <Button
