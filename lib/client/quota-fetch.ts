@@ -4,6 +4,10 @@ import {
   parseApiErrorDetails,
   parseApiErrorMessage,
 } from "@/lib/client/parse-api-error";
+import {
+  logFetchRequest,
+  resolveApiUrl,
+} from "@/lib/client/api-request-utils";
 import { formatUploadErrorMessage } from "@/lib/client/show-upload-error";
 
 interface QuotaAwareFetchHandlers {
@@ -11,15 +15,14 @@ interface QuotaAwareFetchHandlers {
 }
 
 function resolveFetchUrl(input: RequestInfo | URL) {
-  if (typeof input === "string") {
-    return input;
-  }
+  const raw =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url;
 
-  if (input instanceof URL) {
-    return input.href;
-  }
-
-  return input.url;
+  return resolveApiUrl(raw);
 }
 
 function formatRequestErrorMessage(message: string) {
@@ -36,7 +39,11 @@ function normalizeNetworkErrorMessage(error: unknown): string {
   if (
     message === "Load failed" ||
     message === "Failed to fetch" ||
-    message === "NetworkError when attempting to fetch resource."
+    message === "NetworkError when attempting to fetch resource." ||
+    message.includes("网络连接") ||
+    message.includes("Network connection") ||
+    message.includes("connection was lost") ||
+    message.includes("连接已中断")
   ) {
     return "网络连接失败，请检查网络后重试";
   }
@@ -50,10 +57,17 @@ function normalizeNetworkErrorMessage(error: unknown): string {
 export function createQuotaAwareFetch(handlers: QuotaAwareFetchHandlers) {
   return async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = resolveFetchUrl(input);
-    const method = init?.method ?? "GET";
+    const method =
+      init?.method ??
+      (input instanceof Request ? input.method : "GET");
+
+    logFetchRequest("fetch", url, init);
 
     try {
-      const response = await fetch(input, init);
+      const response =
+        typeof input === "string"
+          ? await fetch(url, init)
+          : await fetch(new Request(url, input instanceof Request ? input : undefined), init);
 
       if (response.status === 429) {
         handlers.onQuotaExceeded();
@@ -129,8 +143,13 @@ export async function fetchJsonWithToast<T>(
   const method = init?.method ?? "GET";
   let response: Response;
 
+  logFetchRequest("fetchJsonWithToast", url, init);
+
   try {
-    response = await fetch(input, init);
+    response =
+      typeof input === "string"
+        ? await fetch(url, init)
+        : await fetch(new Request(url, input instanceof Request ? input : undefined), init);
   } catch (error) {
     const friendly = normalizeNetworkErrorMessage(error);
     console.error("[CareerGPS][fetchJsonWithToast] network error", {

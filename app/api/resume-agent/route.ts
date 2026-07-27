@@ -24,7 +24,11 @@ import { QuotaExceededError } from "@/lib/quota/quota-errors";
 import { sanitizeResumeTextDetailed } from "@/lib/utils/sanitize";
 import { createClient } from "@/lib/supabase/server";
 
+export const runtime = "nodejs";
 export const maxDuration = 60;
+
+/** Vercel Serverless 请求体上限（与客户端 MAX_RESUME_ANALYSIS_BODY_BYTES 对齐） */
+const MAX_REQUEST_BODY_BYTES = 4 * 1024 * 1024 - 256 * 1024;
 
 interface ResumeAgentBody {
   jdText?: string;
@@ -48,13 +52,31 @@ export async function POST(request: Request) {
       return Response.json({ error: "请先登录后再使用简历排雷" }, { status: 401 });
     }
 
+    const contentLength = Number(request.headers.get("content-length") ?? "0");
+    if (contentLength > MAX_REQUEST_BODY_BYTES) {
+      return Response.json(
+        {
+          error: `请求体过大（${Math.round(contentLength / 1024)}KB），请删减 JD/简历内容后重试`,
+        },
+        { status: 413 },
+      );
+    }
+
     let body: ResumeAgentBody;
 
     try {
       body = (await request.json()) as ResumeAgentBody;
     } catch (parseError) {
       logDeepSeekError("POST /api/resume-agent invalid JSON", parseError);
-      return Response.json({ error: "请求体格式无效" }, { status: 400 });
+      return Response.json(
+        {
+          error:
+            contentLength > MAX_REQUEST_BODY_BYTES
+              ? "请求体过大，请删减内容后重试"
+              : "请求体格式无效",
+        },
+        { status: contentLength > MAX_REQUEST_BODY_BYTES ? 413 : 400 },
+      );
     }
 
     const rawJd = body.jdText?.trim() ?? "";

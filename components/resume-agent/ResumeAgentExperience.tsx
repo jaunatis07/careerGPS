@@ -9,6 +9,12 @@ import { ResumeAnalysisPanel } from "@/components/resume-agent/ResumeAnalysisPan
 import { ResumeInputPanel } from "@/components/resume-agent/ResumeInputPanel";
 import { Button } from "@/components/ui/button";
 import type { CompanyRiskReport } from "@/lib/ai/prompts/resume-system-prompt";
+import {
+  estimateResumeAnalysisPayloadBytes,
+  MAX_RESUME_ANALYSIS_BODY_BYTES,
+  resolveApiUrl,
+  RESUME_AGENT_API_PATH,
+} from "@/lib/client/api-request-utils";
 import { fetchJsonWithToast } from "@/lib/client/quota-fetch";
 import { CHAT_PANEL_HEIGHT_CLASS } from "@/lib/constants/layout";
 import {
@@ -37,9 +43,15 @@ export function ResumeAgentExperience() {
     [jdText, resumeText],
   );
 
+  const resumeAgentApiUrl = useMemo(
+    () => resolveApiUrl(RESUME_AGENT_API_PATH),
+    [],
+  );
+
   const { completion, complete, isLoading, error, stop, setCompletion } =
     useCompletion({
-      api: "/api/resume-agent",
+      api: resumeAgentApiUrl,
+      streamProtocol: "text",
       fetch: quotaAwareFetch,
       onFinish: () => {
         void refreshQuota();
@@ -47,7 +59,8 @@ export function ResumeAgentExperience() {
       onError: (completionError) => {
         console.error("[CareerGPS][resume-agent] stream error", completionError);
         const message =
-          completionError.message === "Load failed"
+          completionError.message === "Load failed" ||
+          completionError.message.includes("网络连接")
             ? "分析流式响应失败，请检查网络或稍后重试"
             : completionError.message;
         toast.error(message);
@@ -65,7 +78,7 @@ export function ResumeAgentExperience() {
     let cancelled = false;
 
     void fetchJsonWithToast<{ report?: CompanyRiskReport | null }>(
-      "/api/company-check",
+      resolveApiUrl("/api/company-check"),
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -99,8 +112,37 @@ export function ResumeAgentExperience() {
       return;
     }
 
+    const payloadBytes = estimateResumeAnalysisPayloadBytes(jdText, resumeText);
+
+    if (payloadBytes > MAX_RESUME_ANALYSIS_BODY_BYTES) {
+      const message = `内容过长（约 ${Math.round(payloadBytes / 1024)}KB），请删减后重试（上限约 ${Math.round(MAX_RESUME_ANALYSIS_BODY_BYTES / 1024)}KB）`;
+      console.error("[CareerGPS][resume-agent] payload too large", {
+        url: resumeAgentApiUrl,
+        mode,
+        payloadBytes,
+        jdLength: jdText.length,
+        resumeLength: resumeText.length,
+      });
+      toast.error(message);
+      return;
+    }
+
+    console.info("[CareerGPS][resume-agent] analyze request", {
+      url: resumeAgentApiUrl,
+      path: RESUME_AGENT_API_PATH,
+      mode,
+      payloadBytes,
+      jdLength: jdText.length,
+      resumeLength: resumeText.length,
+      jdPreview: jdText.slice(0, 120),
+      resumePreview: resumeText.slice(0, 120),
+    });
+
     setCompletion("");
-    stop();
+
+    if (isLoading) {
+      stop();
+    }
 
     try {
       await complete("", {
@@ -111,7 +153,9 @@ export function ResumeAgentExperience() {
       });
     } catch (analyzeError) {
       console.error("[CareerGPS][resume-agent] analyze request failed", {
+        url: resumeAgentApiUrl,
         mode,
+        payloadBytes,
         jdLength: jdText.length,
         resumeLength: resumeText.length,
         error: analyzeError,
