@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { listPlannerSessionsForProfile } from "@/lib/chat/session-manager";
+import { QUOTA_ENFORCEMENT_ENABLED } from "@/lib/constants/quota";
 import { getSavedJobs } from "@/lib/jobs/saved-jobs";
 import { getCurrentUserQuota } from "@/lib/quota/get-current-user-quota";
 import { createClient } from "@/lib/supabase/server";
@@ -64,7 +65,7 @@ export default async function ProfilePage() {
             <CardDescription>CareerGPS 账号</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-3">
-            <QuotaBadge quota={quota} />
+            {QUOTA_ENFORCEMENT_ENABLED ? <QuotaBadge quota={quota} /> : null}
             <ProfileSignOutButton />
           </CardContent>
         </Card>

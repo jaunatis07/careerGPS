@@ -13,6 +13,7 @@ import { AppToaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/shared/Navbar";
 import { QuotaExhaustedDialog } from "@/components/shared/QuotaExhaustedDialog";
 import { createQuotaAwareFetch } from "@/lib/client/quota-fetch";
+import { QUOTA_ENFORCEMENT_ENABLED } from "@/lib/constants/quota";
 import type { QuotaSummary } from "@/types";
 
 interface QuotaContextValue {
@@ -48,6 +49,10 @@ export function QuotaProvider({
   }, []);
 
   const assertQuotaAvailable = useCallback(() => {
+    if (!QUOTA_ENFORCEMENT_ENABLED) {
+      return true;
+    }
+
     if (quota.remaining <= 0) {
       showQuotaExhausted();
       return false;
@@ -108,7 +113,7 @@ export function QuotaProvider({
       <Navbar email={email} quota={quota} />
       {children}
       <QuotaExhaustedDialog
-        open={exhaustedOpen}
+        open={QUOTA_ENFORCEMENT_ENABLED && exhaustedOpen}
         quota={quota}
         onOpenChange={setExhaustedOpen}
       />

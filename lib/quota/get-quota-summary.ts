@@ -1,4 +1,7 @@
-import { DAILY_QUOTA_LIMIT } from "@/lib/constants/quota";
+import {
+  DAILY_QUOTA_LIMIT,
+  QUOTA_ENFORCEMENT_ENABLED,
+} from "@/lib/constants/quota";
 import type { QuotaSummary, UserProfileQuota } from "@/types";
 
 /**
@@ -6,6 +9,14 @@ import type { QuotaSummary, UserProfileQuota } from "@/types";
  * 若 last_quota_reset 不是今天，则视为已跨天重置。
  */
 export function getQuotaSummary(profile: UserProfileQuota | null): QuotaSummary {
+  if (!QUOTA_ENFORCEMENT_ENABLED) {
+    return {
+      limit: DAILY_QUOTA_LIMIT,
+      used: 0,
+      remaining: DAILY_QUOTA_LIMIT,
+    };
+  }
+
   const limit = DAILY_QUOTA_LIMIT;
 
   if (!profile) {

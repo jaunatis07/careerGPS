@@ -16,6 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NAV_ITEMS } from "@/lib/constants/navigation";
+import { QUOTA_ENFORCEMENT_ENABLED } from "@/lib/constants/quota";
 import { cn } from "@/lib/utils";
 import type { QuotaSummary } from "@/types";
 
@@ -73,7 +74,7 @@ export function Navbar({ email, quota }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <QuotaBadge quota={quota} />
+          {QUOTA_ENFORCEMENT_ENABLED ? <QuotaBadge quota={quota} /> : null}
 
           <Link
             href="/profile"
@@ -109,11 +110,13 @@ export function Navbar({ email, quota }: NavbarProps) {
                 <SheetTitle>模块导航</SheetTitle>
               </SheetHeader>
               <div className="mt-4 px-4">
-                <p className="mb-4 text-sm text-muted-foreground">
-                  {quota.remaining <= 0
-                    ? "今日额度已用尽"
-                    : `今日剩余 ${quota.remaining}/${quota.limit} 次`}
-                </p>
+                {QUOTA_ENFORCEMENT_ENABLED ? (
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {quota.remaining <= 0
+                      ? "今日额度已用尽"
+                      : `今日剩余 ${quota.remaining}/${quota.limit} 次`}
+                  </p>
+                ) : null}
                 <nav className="flex flex-col gap-1">
                   {NAV_ITEMS.map((item) => {
                     const isActive =

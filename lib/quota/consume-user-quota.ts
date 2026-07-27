@@ -1,12 +1,27 @@
-import { DAILY_QUOTA_LIMIT } from "@/lib/constants/quota";
+import {
+  DAILY_QUOTA_LIMIT,
+  QUOTA_ENFORCEMENT_ENABLED,
+} from "@/lib/constants/quota";
 import { getQuotaSummary } from "@/lib/quota/get-quota-summary";
 import { QuotaExceededError } from "@/lib/quota/quota-errors";
 import { createClient } from "@/lib/supabase/server";
+
+function unlimitedQuotaSummary() {
+  return {
+    limit: DAILY_QUOTA_LIMIT,
+    used: 0,
+    remaining: DAILY_QUOTA_LIMIT,
+  };
+}
 
 /**
  * 校验用户是否仍有可用 AI 额度；不足时抛出 QuotaExceededError。
  */
 export async function assertQuotaAvailable(userId: string) {
+  if (!QUOTA_ENFORCEMENT_ENABLED) {
+    return;
+  }
+
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("user_profiles")
@@ -25,6 +40,10 @@ export async function assertQuotaAvailable(userId: string) {
  * 成功完成一次 AI 对话后扣减 daily_quota_used；跨天自动重置计数。
  */
 export async function consumeUserQuota(userId: string) {
+  if (!QUOTA_ENFORCEMENT_ENABLED) {
+    return unlimitedQuotaSummary();
+  }
+
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("user_profiles")
