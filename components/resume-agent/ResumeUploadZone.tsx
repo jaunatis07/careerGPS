@@ -7,20 +7,23 @@ import { toast } from "sonner";
 import { buttonVariants } from "@/components/ui/button";
 import { extractDocumentFromFile } from "@/lib/client/extract-document";
 import { RESUME_FILE_ACCEPT } from "@/lib/resume/document-types";
+import { appendExtractedContent } from "@/lib/utils/append-extracted-text";
 import { cn } from "@/lib/utils";
 
 interface ResumeUploadZoneProps {
   label: string;
+  currentText: string;
   disabled?: boolean;
   onExtracted: (text: string) => void;
   onExtractingChange?: (isExtracting: boolean) => void;
 }
 
 /**
- * 简历/JD 上传：单个原生 file input，由系统弹出相册/拍照/文件选择面板。
+ * 简历/JD 上传：支持多文件连续追加识别，新内容拼接到输入框末尾。
  */
 export function ResumeUploadZone({
   label,
+  currentText,
   disabled = false,
   onExtracted,
   onExtractingChange,
@@ -30,9 +33,9 @@ export function ResumeUploadZone({
 
   async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
-    const file = input.files?.[0];
+    const files = input.files ? Array.from(input.files) : [];
 
-    if (!file || isDisabled) {
+    if (files.length === 0 || isDisabled) {
       return;
     }
 
@@ -40,9 +43,19 @@ export function ResumeUploadZone({
     onExtractingChange?.(true);
 
     try {
-      const result = await extractDocumentFromFile(file);
-      onExtracted(result.text);
-      toast.success(result.message);
+      let accumulated = currentText;
+
+      for (const file of files) {
+        const result = await extractDocumentFromFile(file);
+        accumulated = appendExtractedContent(accumulated, result.text);
+        onExtracted(accumulated);
+      }
+
+      if (files.length === 1) {
+        toast.success(`内容已追加到输入框末尾`);
+      } else {
+        toast.success(`已从 ${files.length} 个文件追加内容到输入框末尾`);
+      }
     } catch (error) {
       console.error("[CareerGPS][ResumeUploadZone]", error);
     } finally {
@@ -63,6 +76,7 @@ export function ResumeUploadZone({
       <input
         type="file"
         accept={RESUME_FILE_ACCEPT}
+        multiple
         className="sr-only"
         disabled={isDisabled}
         onChange={(event) => void handleChange(event)}

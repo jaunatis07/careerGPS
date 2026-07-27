@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ResumeUploadZone } from "@/components/resume-agent/ResumeUploadZone";
 import { extractDocumentFromFile } from "@/lib/client/extract-document";
 import { detectAnalysisMode } from "@/lib/resume/detect-analysis-mode";
+import { appendExtractedContent } from "@/lib/utils/append-extracted-text";
 import { cn } from "@/lib/utils";
 import { sanitizeResumeTextDetailed } from "@/lib/utils/sanitize";
 
@@ -51,22 +52,39 @@ export function ResumeInputPanel({
 
   async function extractIntoField(
     field: "jd" | "resume",
-    file: File | undefined,
+    files: File | File[] | undefined,
   ) {
-    if (!file || isAnalyzing || isExtracting) {
+    const fileList = files
+      ? Array.isArray(files)
+        ? files
+        : [files]
+      : [];
+
+    if (fileList.length === 0 || isAnalyzing || isExtracting) {
       return;
     }
 
     setIsExtracting(true);
 
     try {
-      const result = await extractDocumentFromFile(file);
-      if (field === "jd") {
-        onJdChange(result.text);
-      } else {
-        onResumeChange(result.text);
+      let accumulated = field === "jd" ? jdText : resumeText;
+
+      for (const file of fileList) {
+        const result = await extractDocumentFromFile(file);
+        accumulated = appendExtractedContent(accumulated, result.text);
       }
-      toast.success(result.message);
+
+      if (field === "jd") {
+        onJdChange(accumulated);
+      } else {
+        onResumeChange(accumulated);
+      }
+
+      toast.success(
+        fileList.length === 1
+          ? "内容已追加到输入框末尾"
+          : `已从 ${fileList.length} 个文件追加内容到输入框末尾`,
+      );
     } catch (error) {
       console.error("[CareerGPS][ResumeInputPanel]", error);
     } finally {
@@ -114,7 +132,10 @@ export function ResumeInputPanel({
       return;
     }
 
-    void extractIntoField(field, event.dataTransfer.files?.[0]);
+    void extractIntoField(
+      field,
+      event.dataTransfer.files ? Array.from(event.dataTransfer.files) : undefined,
+    );
   }
 
   return (
@@ -131,6 +152,7 @@ export function ResumeInputPanel({
             <Label htmlFor="jd-text">JD 岗位描述</Label>
             <ResumeUploadZone
               label="上传 JD"
+              currentText={jdText}
               disabled={isAnalyzing || isExtracting}
               onExtracted={onJdChange}
               onExtractingChange={setIsExtracting}
@@ -154,6 +176,7 @@ export function ResumeInputPanel({
             <Label htmlFor="resume-text">简历内容</Label>
             <ResumeUploadZone
               label="上传简历"
+              currentText={resumeText}
               disabled={isAnalyzing || isExtracting}
               onExtracted={onResumeChange}
               onExtractingChange={setIsExtracting}
