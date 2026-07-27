@@ -2,8 +2,14 @@ import {
   buildResumeAnalysisSystemPrompt,
   buildResumeAnalysisUserPrompt,
 } from "@/lib/ai/prompts/resume-system-prompt";
-import { logDeepSeekError } from "@/lib/ai/deepseek-log";
-import { streamDeepSeekText } from "@/lib/ai/deepseek-request";
+import {
+  formatDeepSeekClientError,
+  logDeepSeekError,
+} from "@/lib/ai/deepseek-log";
+import {
+  assertDeepSeekConfigured,
+  streamDeepSeekText,
+} from "@/lib/ai/deepseek-request";
 import { checkCompanyRisk } from "@/lib/resume/company-check";
 import {
   extractCompanyName,
@@ -31,6 +37,8 @@ interface ResumeAgentBody {
  */
 export async function POST(request: Request) {
   try {
+    assertDeepSeekConfigured();
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -40,7 +48,15 @@ export async function POST(request: Request) {
       return Response.json({ error: "请先登录后再使用简历排雷" }, { status: 401 });
     }
 
-    const body = (await request.json()) as ResumeAgentBody;
+    let body: ResumeAgentBody;
+
+    try {
+      body = (await request.json()) as ResumeAgentBody;
+    } catch (parseError) {
+      logDeepSeekError("POST /api/resume-agent invalid JSON", parseError);
+      return Response.json({ error: "请求体格式无效" }, { status: 400 });
+    }
+
     const rawJd = body.jdText?.trim() ?? "";
     const rawResume = body.resumeText?.trim() ?? "";
 
@@ -108,12 +124,7 @@ export async function POST(request: Request) {
     logDeepSeekError("POST /api/resume-agent failed", error);
 
     return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "简历分析请求失败，请稍后重试",
-      },
+      { error: formatDeepSeekClientError(error) },
       { status: 500 },
     );
   }

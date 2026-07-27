@@ -45,7 +45,12 @@ export function ResumeAgentExperience() {
         void refreshQuota();
       },
       onError: (completionError) => {
-        toast.error(completionError.message);
+        console.error("[CareerGPS][resume-agent] stream error", completionError);
+        const message =
+          completionError.message === "Load failed"
+            ? "分析流式响应失败，请检查网络或稍后重试"
+            : completionError.message;
+        toast.error(message);
       },
     });
 
@@ -97,12 +102,21 @@ export function ResumeAgentExperience() {
     setCompletion("");
     stop();
 
-    await complete("", {
-      body: {
-        jdText,
-        resumeText,
-      },
-    });
+    try {
+      await complete("", {
+        body: {
+          jdText,
+          resumeText,
+        },
+      });
+    } catch (analyzeError) {
+      console.error("[CareerGPS][resume-agent] analyze request failed", {
+        mode,
+        jdLength: jdText.length,
+        resumeLength: resumeText.length,
+        error: analyzeError,
+      });
+    }
   }
 
   return (
