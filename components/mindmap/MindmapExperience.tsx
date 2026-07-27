@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { CareerMindmap } from "@/components/mindmap/CareerMindmap";
 import { JobInsightPanel } from "@/components/mindmap/JobInsightPanel";
 import { CAREER_TREE, getAllLeafLabels } from "@/lib/constants/career-tree";
+import { syncSavedJobsWithServer } from "@/lib/client/saved-jobs";
 
 const VALID_JOB_TITLES = getAllLeafLabels();
 
@@ -30,6 +31,10 @@ export function MindmapExperience() {
       setPanelOpen(true);
     }
   }, [jobFromQuery]);
+
+  useEffect(() => {
+    void syncSavedJobsWithServer();
+  }, []);
 
   function handleSelectJob(title: string) {
     setSelectedJob(title);

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ensureUserProfile } from "@/lib/supabase/ensure-user-profile";
 import { createClient } from "@/lib/supabase/server";
 
 export interface SavePlannerProfileInput {
@@ -22,6 +23,8 @@ export async function savePlannerProfile(input: SavePlannerProfileInput) {
     throw new Error("请先登录");
   }
 
+  await ensureUserProfile(user.id);
+
   const { error } = await supabase
     .from("user_profiles")
     .update({
@@ -35,6 +38,7 @@ export async function savePlannerProfile(input: SavePlannerProfileInput) {
   }
 
   revalidatePath("/planner");
+  revalidatePath("/profile");
 
   return { success: true };
 }

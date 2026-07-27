@@ -6,6 +6,7 @@ import {
   calculateAssessmentTags,
   isAssessmentComplete,
 } from "@/lib/assessment/calculate-tags";
+import { ensureUserProfile } from "@/lib/supabase/ensure-user-profile";
 import { createClient } from "@/lib/supabase/server";
 
 export interface SubmitAssessmentInput {
@@ -43,6 +44,8 @@ export async function submitAssessment(
   const mbti = input.mbti?.trim().toUpperCase() || null;
   const holland = input.holland?.trim().toUpperCase() || null;
 
+  await ensureUserProfile(user.id);
+
   const { error } = await supabase
     .from("user_profiles")
     .update({
@@ -57,6 +60,8 @@ export async function submitAssessment(
   }
 
   revalidatePath("/assessment");
+  revalidatePath("/profile");
+  revalidatePath("/planner");
 
   return { tags, mbti, holland };
 }

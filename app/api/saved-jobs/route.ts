@@ -1,3 +1,5 @@
+import { revalidatePath } from "next/cache";
+
 import {
   getSavedJobs,
   toggleSavedJob,
@@ -5,6 +7,11 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+
+function revalidateSavedJobPaths() {
+  revalidatePath("/profile");
+  revalidatePath("/mindmap");
+}
 
 /**
  * GET /api/saved-jobs — 获取当前用户收藏岗位列表
@@ -56,6 +63,7 @@ export async function POST(request: Request) {
     }
 
     const result = await toggleSavedJob(user.id, title);
+    revalidateSavedJobPaths();
     return Response.json(result);
   } catch (error) {
     return Response.json(

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ProfileChatHistoryCard } from "@/components/profile/ProfileChatHistoryCard";
+import { ProfileDataSync } from "@/components/profile/ProfileDataSync";
 import { ProfileSavedJobsCard } from "@/components/profile/ProfileSavedJobsCard";
 import { ProfileSignOutButton } from "@/components/profile/ProfileSignOutButton";
 import { QuotaBadge } from "@/components/shared/QuotaBadge";
@@ -20,6 +21,8 @@ import { QUOTA_ENFORCEMENT_ENABLED } from "@/lib/constants/quota";
 import { getSavedJobs } from "@/lib/jobs/saved-jobs";
 import { getCurrentUserQuota } from "@/lib/quota/get-current-user-quota";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 function getEmailInitial(email: string) {
   return email.trim().charAt(0).toUpperCase() || "U";
@@ -53,6 +56,7 @@ export default async function ProfilePage() {
       title="个人主页"
       description="查看账号信息、收藏岗位与生涯规划对话历史。"
     >
+      <ProfileDataSync serverSavedJobCount={savedJobs.length} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)] xl:gap-6">
         <Card>
           <CardHeader className="items-center text-center">
