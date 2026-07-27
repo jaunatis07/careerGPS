@@ -28,7 +28,7 @@ interface QuotaContextValue {
 const QuotaContext = createContext<QuotaContextValue | null>(null);
 
 interface QuotaProviderProps {
-  email: string;
+  displayName: string;
   initialQuota: QuotaSummary;
   children: ReactNode;
 }
@@ -37,7 +37,7 @@ interface QuotaProviderProps {
  * 全局额度 Context：客户端预检、429 弹窗、额度徽章同步。
  */
 export function QuotaProvider({
-  email,
+  displayName,
   initialQuota,
   children,
 }: QuotaProviderProps) {
@@ -110,7 +110,7 @@ export function QuotaProvider({
 
   return (
     <QuotaContext.Provider value={value}>
-      <Navbar email={email} quota={quota} />
+      <Navbar displayName={displayName} quota={quota} />
       {children}
       <QuotaExhaustedDialog
         open={QUOTA_ENFORCEMENT_ENABLED && exhaustedOpen}

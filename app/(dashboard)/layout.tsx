@@ -1,3 +1,4 @@
+import { getUserDisplayName } from "@/lib/auth/user-display";
 import { QuotaProvider } from "@/components/providers/QuotaProvider";
 import { getCurrentUserQuota } from "@/lib/quota/get-current-user-quota";
 import { createClient } from "@/lib/supabase/server";
@@ -23,7 +24,10 @@ export default async function DashboardLayout({
   const quota = await getCurrentUserQuota();
 
   return (
-    <QuotaProvider email={user.email ?? "用户"} initialQuota={quota}>
+    <QuotaProvider
+      displayName={getUserDisplayName(user)}
+      initialQuota={quota}
+    >
       <div className="flex min-h-screen flex-col bg-background">
         <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-4 sm:px-6 sm:py-6">
           {children}

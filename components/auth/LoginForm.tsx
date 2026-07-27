@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,97 +14,129 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_AUTH_REDIRECT } from "@/lib/constants/auth";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-
-type AuthMode = "signin" | "signup";
 
 interface LoginFormProps {
   redirectTo?: string;
   initialError?: string;
 }
 
-const MIN_PASSWORD_LENGTH = 6;
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
- * 登录/注册表单：纯邮箱 + 密码。
+ * 手机号 + 短信验证码登录/注册（统一入口，无境外邮件跳转）。
  */
 export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpToken, setOtpToken] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(initialError ?? null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [devHint, setDevHint] = useState<string | null>(null);
 
   const destination = redirectTo || DEFAULT_AUTH_REDIRECT;
+  const isBusy = isSending || isVerifying;
+
+  useEffect(() => {
+    if (cooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setCooldown((value) => Math.max(value - 1, 0));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
 
   function resetFeedback() {
     setMessage(null);
     setIsSuccess(false);
   }
 
-  function switchMode(nextMode: AuthMode) {
-    setMode(nextMode);
-    setPassword("");
-    setConfirmPassword("");
+  async function handleSendOtp() {
     resetFeedback();
-  }
+    setDevHint(null);
 
-  async function handleEmailAuth(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    resetFeedback();
-    setIsLoading(true);
+    if (!phone.trim()) {
+      setMessage("请输入手机号");
+      return;
+    }
+
+    setIsSending(true);
 
     try {
-      if (password.length < MIN_PASSWORD_LENGTH) {
-        throw new Error(`密码至少 ${MIN_PASSWORD_LENGTH} 位`);
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+
+      const data = (await response.json()) as {
+        otpToken?: string;
+        devHint?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "验证码发送失败");
       }
 
-      if (mode === "signup" && password !== confirmPassword) {
-        throw new Error("两次输入的密码不一致");
-      }
+      setOtpToken(data.otpToken ?? null);
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+      setIsSuccess(true);
+      setMessage("验证码已发送，请注意查收短信");
+      setDevHint(data.devHint ?? null);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "验证码发送失败，请稍后重试",
+      );
+    } finally {
+      setIsSending(false);
+    }
+  }
 
-      const supabase = createClient();
+  async function handleVerifyOtp(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    resetFeedback();
 
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+    if (!otpToken) {
+      setMessage("请先点击「获取验证码」");
+      return;
+    }
 
-        if (error) {
-          throw error;
-        }
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+    setIsVerifying(true);
 
-        if (error) {
-          throw error;
-        }
+    try {
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone,
+          code: otpCode,
+          otpToken,
+        }),
+      });
 
-        if (!data.session) {
-          setIsSuccess(true);
-          setMessage(
-            "注册成功。若 Supabase 开启了邮箱确认，请先查收确认邮件；否则请直接切换到「登录」",
-          );
-          return;
-        }
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "登录失败");
       }
 
       router.push(destination);
       router.refresh();
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "操作失败，请稍后重试",
+        error instanceof Error ? error.message : "登录失败，请稍后重试",
       );
     } finally {
-      setIsLoading(false);
+      setIsVerifying(false);
     }
   }
 
@@ -112,93 +144,68 @@ export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>登录 / 注册 CareerGPS</CardTitle>
-        <CardDescription>使用邮箱与密码注册或登录</CardDescription>
+        <CardDescription>
+          使用手机号与短信验证码登录，新用户验证通过后自动注册
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
-          <button
-            type="button"
-            className={cn(
-              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              mode === "signin"
-                ? "bg-background shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            disabled={isLoading}
-            onClick={() => switchMode("signin")}
-          >
-            登录
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              mode === "signup"
-                ? "bg-background shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            disabled={isLoading}
-            onClick={() => switchMode("signup")}
-          >
-            注册
-          </button>
-        </div>
-
-        <form className="space-y-4" onSubmit={handleEmailAuth}>
+        <form className="space-y-4" onSubmit={handleVerifyOtp}>
           <div className="space-y-2">
-            <Label htmlFor="email">邮箱地址</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              autoComplete="email"
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">密码</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder={`至少 ${MIN_PASSWORD_LENGTH} 位`}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              minLength={MIN_PASSWORD_LENGTH}
-              autoComplete={
-                mode === "signin" ? "current-password" : "new-password"
-              }
-              disabled={isLoading}
-            />
-          </div>
-
-          {mode === "signup" ? (
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">确认密码</Label>
+            <Label htmlFor="phone">手机号</Label>
+            <div className="flex gap-2">
+              <div className="flex h-9 shrink-0 items-center rounded-lg border bg-muted/40 px-3 text-sm text-muted-foreground">
+                +86
+              </div>
               <Input
-                id="confirm-password"
-                type="password"
-                placeholder="再次输入密码"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
+                id="phone"
+                type="tel"
+                inputMode="numeric"
+                placeholder="请输入 11 位手机号"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
                 required
-                minLength={MIN_PASSWORD_LENGTH}
-                autoComplete="new-password"
-                disabled={isLoading}
+                autoComplete="tel"
+                disabled={isBusy}
+                maxLength={13}
               />
             </div>
-          ) : null}
+          </div>
 
-          <Button className="w-full" type="submit" disabled={isLoading}>
-            {isLoading
-              ? "处理中..."
-              : mode === "signin"
-                ? "登录"
-                : "注册并登录"}
+          <div className="space-y-2">
+            <Label htmlFor="otp-code">短信验证码</Label>
+            <div className="flex gap-2">
+              <Input
+                id="otp-code"
+                type="text"
+                inputMode="numeric"
+                placeholder={`${OTP_LENGTH} 位验证码`}
+                value={otpCode}
+                onChange={(event) =>
+                  setOtpCode(event.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH))
+                }
+                required
+                autoComplete="one-time-code"
+                disabled={isBusy}
+                maxLength={OTP_LENGTH}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0 px-3"
+                disabled={isBusy || cooldown > 0}
+                onClick={() => void handleSendOtp()}
+              >
+                {isSending
+                  ? "发送中..."
+                  : cooldown > 0
+                    ? `${cooldown}s`
+                    : "获取验证码"}
+              </Button>
+            </div>
+          </div>
+
+          <Button className="w-full" type="submit" disabled={isBusy}>
+            {isVerifying ? "登录中..." : "登录 / 注册"}
           </Button>
         </form>
 
@@ -213,6 +220,10 @@ export function LoginForm({ redirectTo, initialError }: LoginFormProps) {
           >
             {message}
           </p>
+        ) : null}
+
+        {devHint ? (
+          <p className="text-xs text-muted-foreground">{devHint}</p>
         ) : null}
       </CardContent>
     </Card>

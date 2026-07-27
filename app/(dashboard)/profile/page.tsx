@@ -17,16 +17,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { listPlannerSessionsForProfile } from "@/lib/chat/session-manager";
+import {
+  getUserAvatarInitial,
+  getUserDisplayName,
+} from "@/lib/auth/user-display";
 import { QUOTA_ENFORCEMENT_ENABLED } from "@/lib/constants/quota";
 import { getSavedJobs } from "@/lib/jobs/saved-jobs";
 import { getCurrentUserQuota } from "@/lib/quota/get-current-user-quota";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-function getEmailInitial(email: string) {
-  return email.trim().charAt(0).toUpperCase() || "U";
-}
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -38,7 +38,7 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const email = user.email ?? "用户";
+  const displayName = getUserDisplayName(user);
   const quota = await getCurrentUserQuota();
 
   const [{ data: profileRow }, savedJobs, plannerSessions] = await Promise.all([
@@ -62,10 +62,10 @@ export default async function ProfilePage() {
           <CardHeader className="items-center text-center">
             <Avatar size="lg">
               <AvatarFallback className="text-lg">
-                {getEmailInitial(email)}
+                {getUserAvatarInitial(user)}
               </AvatarFallback>
             </Avatar>
-            <CardTitle className="text-base">{email}</CardTitle>
+            <CardTitle className="text-base">{displayName}</CardTitle>
             <CardDescription>CareerGPS 账号</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-3">

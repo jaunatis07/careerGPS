@@ -21,21 +21,22 @@ import { cn } from "@/lib/utils";
 import type { QuotaSummary } from "@/types";
 
 interface NavbarProps {
-  email: string;
+  displayName: string;
   quota: QuotaSummary;
 }
 
 /**
- * 获取邮箱首字母，用作头像占位符。
+ * 获取展示名称首字符，用作头像占位符。
  */
-function getEmailInitial(email: string) {
-  return email.trim().charAt(0).toUpperCase() || "U";
+function getDisplayInitial(displayName: string) {
+  const trimmed = displayName.trim();
+  return trimmed.charAt(trimmed.length - 1).toUpperCase() || "U";
 }
 
 /**
  * Dashboard 顶部导航：Logo、模块 Tab、额度徽章与头像；移动端使用 Sheet 抽屉。
  */
-export function Navbar({ email, quota }: NavbarProps) {
+export function Navbar({ displayName, quota }: NavbarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -88,7 +89,7 @@ export function Navbar({ email, quota }: NavbarProps) {
             )}
           >
             <Avatar size="sm">
-              <AvatarFallback>{getEmailInitial(email)}</AvatarFallback>
+              <AvatarFallback>{getDisplayInitial(displayName)}</AvatarFallback>
             </Avatar>
           </Link>
 
