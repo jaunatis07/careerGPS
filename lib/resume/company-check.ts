@@ -27,7 +27,7 @@ export function mockCompanyRiskCheck(companyName: string): CompanyRiskReport {
       riskLevel: "medium",
       summary: "检测到疑似初创/中小型公司，建议进一步核实工商与融资信息。",
       risks: [
-        "公开渠道未能完全验证融资轮次与实缴资本（MVP 模拟）",
+        "公开渠道暂未能完全验证融资轮次与实缴资本，建议通过工商公示系统进一步核实",
         "建议确认劳动合同主体、社保缴纳与办公地址是否一致",
         "关注是否存在岗位挂羊头卖狗肉或过度加班文化信号",
       ],
