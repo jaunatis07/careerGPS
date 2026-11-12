@@ -104,13 +104,16 @@ export function AssessmentExperience({
 
   return (
     <div className="space-y-6">
-      <ProfileBasicsSection
-        mbti={mbti}
-        holland={holland}
-        onMbtiChange={setMbti}
-        onHollandChange={setHolland}
-        disabled={phase === "result" && !isSubmitting}
-      />
+     {phase === "quiz" && (
+  <ProfileBasicsSection
+    mbti={mbti}
+    holland={holland}
+    onMbtiChange={setMbti}
+    onHollandChange={setHolland}
+    disabled={isSubmitting}
+  />
+)}
+
 
       {phase === "quiz" ? (
         <AssessmentQuiz
